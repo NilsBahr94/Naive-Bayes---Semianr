@@ -1,5 +1,14 @@
 # Seminar Instructions ----------------------------------------------------
 
+# • ip: ip address of click.
+# • app: app id for marketing.
+# • device: device type id of user mobile phone (e.g., iphone 6 plus, iphone 7, huawei mate 7, etc.)
+# • os: os version id of user mobile phone
+# • channel: channel id of mobile ad publisher
+# • click_time: timestamp of click (UTC)
+# • attributed_time: if user download the app for after clicking an ad, this is the time of the app download
+# • is_attributed: the target that is to be predicted, indicating the app was downloaded
+
 # GENERAL DESCRIPTION: Detecting Click Fraud with the help of Naïve Bayes
 # Online-, mobile-, and social media advertising have seen a substantial increase within the last decade. The immense growth has unfortunately also attracted many dark players who use bots, click networks, and other fraud techniques to steal advertising money by increasing clicks. Advertisers around the globe therefore invest substantial resources in understanding, which clicks they receive are fraudulent (not resulting in conversions) and which are real (having at least a likelihood to turn into a conversion). Machine Learning techniques such as e.g. Naïve Bayes Techniques are a helpful tool to encounter click-fraud. Using large amounts of training data, these algorithms seek to understand which factors are suitable to predict if a click origins from a real consumer or from a fraudulent operator.
 # Students are required to give a full overview of the different Naïve Bayes Models available and need to discuss the different approaches available for these techniques.
@@ -45,7 +54,7 @@
 # 8) Was für coole (evtl. interaktive) Visualisierungstechniken gibt es, um die Ergebnisse darzustellen?
     #CAP Curve
     #POC Curve
-    #COntingency Matrix 
+    #Contingency Matrix 
 # 9) Kann man die Observations rausfiltern, bei denen die Wahrscheinlichkeit der Zuordnung zu einer Klasse nur marginal höher ist als die Zuordnung der anderen Klasse (z.B. 0.51 Klasse 1 vs. 0.49 für Klasse 2? Gibt es hierfür bestimmte Parameter, die man noch angeben kann?
     # P(Click Fraud | All Features) vs. P(Click Fraud | only a certain feature)
 # 10) Wie stark können wir davon ausgehen, dass die einzelnen Features wirklich independent sind? Ist es nicht wahrscheinlich, dass bestimmte Botnetzwerke zwar die IP-Adresse häufig ändern, aber trotzdem das gleiche Gerät nutzen bzw. das gleiche OS? -> Das würde die Assumption der Unabhängigkeit der Features schaden.
@@ -117,46 +126,7 @@ head(test_set)
 data_forecast = as.tibble(fread("test-all.csv", na.strings = ""))
 head(data_forecast)
 
-# 2) Data Preparation --------------------------------------------------------
-library(dplyr)
-
-#Verify that data is in a correct structure (dataframe/tibble) & check structure
-class(training_set)
-str(training_set)
-glimpse(training_set)
-summary(training_set)
-
-class(test_set)
-str(test_set)
-summary(test_set)
-
-
-# Transform variabels into factors (validate if this is needed for every variable)
-
-# dataset$ip = as.factor(dataset$ip)
-# dataset$app = as.factor(dataset$app)
-# dataset$device = as.factor(dataset$device)
-# dataset$os = as.factor(dataset$os)
-# dataset$channel = as.factor(dataset$channel)
-str(dataset)
-
-## Adapt the Data Format 
-
-# a) Take care of NA - Even necessarry with Naive Bayes?
-# Column "attributed_time"
-# Maybe use seperate Naive Bayes Classifier in order to classify the NA's
-    # Wird wahrscheinlich aber nicht möglich sein, weil Time variable NA's hat und damit viel zu viele Klassen, die predicted werden müssten
-dataset$attributed_time = ifelse
-
-# a) Binning necesarry to convert variables
-
-# b) Add ID column (?)
-
-# c) Converting chr into factor (?)
-
-# d) Remove highly correlated variables
-
-# 3) Data Exploration --------------------------------------------------------
+# 2) Data Exploration --------------------------------------------------------
 library(purrr)
 
 ## Basic Statistics of the two sets
@@ -203,6 +173,48 @@ library(Hmisc)
 rcorr(as.matrix(dataset$ip), as.matrix(dataset$channel))
 
 #Frage: Ist das Ergebnis nicht falsch, weil im Datensatz die einzelnen Column noch nicht in factor umgewandelt wurde, sondern alle noch Integer sind?
+
+# 3) Data Preparation --------------------------------------------------------
+library(dplyr)
+
+#Verify that data is in a correct structure (dataframe/tibble) & check structure
+class(training_set)
+str(training_set)
+glimpse(training_set)
+summary(training_set)
+
+class(test_set)
+str(test_set)
+summary(test_set)
+
+
+# Transform variabels into factors (validate if this is needed for every variable)
+
+# dataset$ip = as.factor(dataset$ip)
+# dataset$app = as.factor(dataset$app)
+# dataset$device = as.factor(dataset$device)
+# dataset$os = as.factor(dataset$os)
+# dataset$channel = as.factor(dataset$channel)
+str(dataset)
+
+## Adapt the Data Format 
+
+# a) Take care of NA - Even necessarry with Naive Bayes?
+# Column "attributed_time"
+# Maybe use seperate Naive Bayes Classifier in order to classify the NA's
+    # Wird wahrscheinlich aber nicht möglich sein, weil Time variable NA's hat und damit viel zu viele Klassen, die predicted werden müssten
+#Evtl auch binning in Stunden und Dates machen, ohne Minuten und Sekunden - aber nochmal abgleichen mit Data Preprocessing in Data Mining Buch
+dataset$attributed_time = ifelse
+
+# a) Binning necesarry to convert variables
+
+# b) Add ID column (?)
+
+# c) Converting chr into factor (?)
+
+# d) Remove highly correlated variables
+
+
 
 # 4) Modeling ----------------------------------------------------------------
 # 4.1) Basic ---------------------------------------------------------------
@@ -252,6 +264,7 @@ set.seed(987)
 
 # Interaction Effects in das Modell integriert
 
+#Multinomial Naive Bayes (nach dem Algorithms in Data Science Buch)
 
 # 5) Model Performance -------------------------------------------------------
 
@@ -277,6 +290,9 @@ library(MLmetrics)
 
 
 # 6) Data Visualization ------------------------------------------------------
+
+#https://datascienceplus.com/machine-learning-results-one-plot-to-rule-them-all/
+# Check different plots to visualize classification results
 
 # Comparison with Performance of other Algorithms -------------------------
 
