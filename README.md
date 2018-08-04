@@ -1,1 +1,1 @@
-# Naive-Bayes---Semianr
+# Naive-Bayes---Seminar
