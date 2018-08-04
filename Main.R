@@ -29,58 +29,6 @@
 #Information regarding features 
 
 
-# Open Questions  ----------------------------------------------
-
-# 1) Which time does make it likely that Click Fraud has happened?
-    # Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
-    # At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?
-# 2) Which OS does make it most likely that Click Fraud has happened?
-    # Can you filter out certain OS in conjunction with certain devices at which Click Fraud comes up more likely?
-# 3) Are their IP addresses which can be clearly assigned to a bot?
-    # Is there a certain pattern in IP adresses based on those with click fraud?
-      # Do those come from a certain country (e.g. where a certain proxy came from)?
-# 4) Does the time in which data is generated bias the outcomes of the algorithms? (Only three day period after all)
-    # What time period is considered within the data?
-      # Only three days 
-    # Although we have 5 million rows of data - it might be that this data is still not that representative given that it comprises only 3 days of records?
-      # Maybe bots are rather active at certain days within a week or regarding a certain time in the month/quarter/year etc.
-# 5) Inference: Which feature does help most to predict whether Click Fraud has happened or not?
-    # Is it really one feature or a combination of different features?
-# 6) How to build a pipeline classifier? When setting bins, new data is sorted into those bins so that classification works.
-    # Also how do newly created features fit automatically to a new variable which is created on basis of known interaction effect?
-# 7) How fast does the Naive Bayes Classifier calculate the result? Is in that time a major advantage in comparison to other algorithms? What exactly do we have to measure in order to check the time - prediction function of the classifier on the data_forecast set?
-    # Also research the framing of click fraud problems. Is time here a major factor? Or is it more important that the classifier is more accurate and the frauds can be identified also some other after the click fraud has happened?
-      # Oder wird beim Click Frauf direkt abgerechnet an den Bewerbenden, sodass eine direkte Erkennung notwendig ist? 
-# 8) Was für coole (evtl. interaktive) Visualisierungstechniken gibt es, um die Ergebnisse darzustellen?
-    #CAP Curve
-    #POC Curve
-    #Contingency Matrix 
-# 9) Kann man die Observations rausfiltern, bei denen die Wahrscheinlichkeit der Zuordnung zu einer Klasse nur marginal höher ist als die Zuordnung der anderen Klasse (z.B. 0.51 Klasse 1 vs. 0.49 für Klasse 2? Gibt es hierfür bestimmte Parameter, die man noch angeben kann?
-    # P(Click Fraud | All Features) vs. P(Click Fraud | only a certain feature)
-# 10) Wie stark können wir davon ausgehen, dass die einzelnen Features wirklich independent sind? Ist es nicht wahrscheinlich, dass bestimmte Botnetzwerke zwar die IP-Adresse häufig ändern, aber trotzdem das gleiche Gerät nutzen bzw. das gleiche OS? -> Das würde die Assumption der Unabhängigkeit der Features schaden.
-    # Ja, ist wahrscheinlich. Eventuell trotzdem Basic Naive Bayes Classifier ausprobieren und Ergebnisse des Models checken. Trotzdem auch nochmal Extensions anschauen und überlegen, wie Naive Bayes damit performt (ADA Boost, Interaction Effect, verschiedene Verteilungen, Laplace, etc.)?
-# 11) Wie kann man Overfitting bei Naive Bayes verhindern? Ist es nicht eher so, dass der Naive Bayes eher dazu tendiert underfitting zu machen und deshalb das Thema (außer man wendet beispielsweise Boosting in Kombi mit Naive Bayes an) vernachlässigbar ist primär?
-# 12) Welche Key Performance Metric sollte man für das spezifische Problem hier wählen?
-  #Accuracy wahrscheinlich nicht ntuzen, weil target variable classes (natural & click fraud) sehr unausgeglichen sind (Hypothese - muss noch validiert werden).
-  #F1 Score 
-  #CAP Curve
-# 13) Kann man hoch korrelierte Features eventuell zu einem neuen Feature zusammenfassen? Oder würde das dann eher die Informationen verwässern und die tatsächliche Click Fraud Erkennung später nicht möglich machen, weil das neue Feature in der Ausprägung ja nicht beobachtet wird, sondern eher die einzelnen Features, die in das gemeinsame neu erstellte Feature mit reinfließen würden?
-# 14) Brainstorming welche Interaktionskombinationen zwischen den einzelnen Features realistisch sein können.
-  #(z.B. app, OS, device)
-  #OS und Device - sehr wahrscheinlich
-#15) Wenn man eine neue Variable als Interaktion erstellt, kann es sein, dass man dann Probleme damit bekommt das forecasted set darauf zu basieren?
-#16) Ist nach Erläuterung der einzelnen Feature das Problem eigentlich nicht eher ein Problem, dass manipulativ eine App heruntergeladen wird und NICHT dass eine Display Ad falscherweise heruntergeladen wurde?
-# 17) Wie schneidet Algorithmus ab wenn man hoch korrelierte Variablen drin lässt vs. rauslöscht vs. neue zusammenfassende Interaktionsvariable einbaut und die alten interagierenden Variablen beim Model Fitting rauslässt?
-# 18) Inhaltliche Frage zu der Interpretation des Outputs des Models: Werden einzelne Conditional Probabilities pro Feature ausgegeben? Kriegt man auch heraus, dass wenn die Daten in den Features einen bestimmten Wert annehmen, dasss das dann eher zur Zuordnung von y=1 führt währenddessen die Ausprägung bei anderen Features eher zur Zuordnung von y=0 führt.
-# 19) Gibt es Ausprägungen von kategorischen Variablen im Test-set (to be forecasted), die es noch nicht im Training-Set gegeben hat? (In unserem Datenset kann das tatsächlich gut sein, wenn es ein zusätzliches Gerät bzw. zusätzliche Betriebssystemsversion gibt)
-    # Sind diese Ausprägungen stark?
-      # Hier mal Matching zwischen den spezifischen Ausprägungen zwischen Training & Testset machen + auch noch für forecast_dataset machen. 
-        # Anzahl von Factor levels anschauen und checken ob diese vergleichbar sind und zusätzlich noch gucken wie viele jeweils gleich sind und wie viele nicht (Prozentzahl der Überschneidung ausrechnen und dann gucken, wie groß der prozentuale Anteil der Nicht-Überschneidung ist und checken, ob das dramatisch ist)
-# 20) Können Korrelationen überhaupt gecheckt werden, wenn variables, noch als Integer drin stehen und noch nicht zu Faktoren umgeswitcht worden sind?
-    #Frage: Ist das Ergebnis nicht falsch, weil im Datensatz die einzelnen Column noch nicht in factor umgewandelt wurde, sondern alle noch Integer sind?
-      # Vielleicht chi-square oder ANOVA anzuwenden. https://stats.stackexchange.com/questions/108007/correlations-with-unordered-categorical-variables
-      # Allgemein nochmal nachgucken, was hier bei Naive Bayes gefragt ist, um die Independence assumption abzuprüfen
-
 
 # 1) Data Import ---------------------------------------------------------------
 
@@ -94,40 +42,93 @@ setwd("C:\\Users\\nilsb\\sciebo\\Master\\2. Semester\\Seminar\\Projekt\\Data")
 # install.packages("tibble")
 library(data.table)
 library(tibble)
+back_up = as.tibble(fread("train-all.csv", na.strings = ""))
 dataset = as.tibble(fread("train-all.csv", na.strings = ""))
 head(dataset)
 
-# Encoding the target feature as factor
-dataset$is_attributed = factor(dataset$is_attributed, levels = c(0, 1))
+# Convert the variables "ip", "app", "device", "os", "channel" & the target variable "is_attributed" into factors 
+convert_features <- c("ip", "app", "device", "os", "channel", "is_attributed")
+dataset[convert_features] <- lapply(dataset[convert_features], factor)
+head(dataset)
 
-#Convert dataset$click_time & dataset$attributed_time variables into POSIXct format
+#Convert th variables "click_time" & "attributed_time" into POSIXct format
 # install.packages("fasttime")
 library(fasttime)
 dataset$click_time = fastPOSIXct(dataset$click_time)
 dataset$attributed_time = fastPOSIXct(dataset$attributed_time)
 head(dataset)
 
-#Split complete data set into two sets: Training & Test-set
+#Load data which should be forecasted
+data_forecast = as.tibble(fread("test-all.csv", na.strings = ""))
+head(data_forecast)
+
+# Convert the variables "click_id", "ip", "app", "device", "os" and "channel" into factors
+convert_features_fc <- c("ip", "app", "device", "os", "channel")
+data_forecast[convert_features_fc] <- lapply(data_forecast[convert_features_fc], factor)
+
+# Convert "click_time" variable into POSIXct format
+data_forecast$click_time = fastPOSIXct(data_forecast$click_time)
+
+# Control if transformation of variables was successful 
+head(data_forecast)
+
+#Split complete dataset into two sets: Training & Test-set
 # install.packages("ISLR")
 library(ISLR)
 attach(dataset)
 smp_siz = floor(0.90*nrow(dataset))  # creates a value for dividing the data into train and test. In this case the value is defined as 90% of the number of rows in the dataset
 smp_siz  # shows the value of the sample size
 
-set.seed(456)   # set seed to ensure you always have same random numbers generated
+set.seed(456)   # set seed to ensure we always have same random numbers generated
 train_ind = sample(seq_len(nrow(dataset)),size = smp_siz)  # Randomly identifies the rows equal to sample size ( defined in previous instruction) from  all the rows of dataset and stores the row number in train_ind
 training_set=dataset[train_ind,] #creates the training dataset with row numbers stored in train_ind
 test_set=dataset[-train_ind,]  # creates the test dataset excluding the row numbers mentioned in train_ind
 
-head(training_set)
-head(test_set)
-
-#Load data which should be forecasted
-data_forecast = as.tibble(fread("test-all.csv", na.strings = ""))
-head(data_forecast)
+# Check whether transformations have worked out and control the size of the training- & testset
+str(training_set)
+str(test_set)
 
 # 2) Data Exploration --------------------------------------------------------
+#install.packages("purrr")
 library(purrr)
+
+#a) Check NA's
+
+# Check percentage of NA's for each feature for the whole dataset
+na_per_feature = apply(dataset, 2, function(col) sum(is.na(col))/length(col))
+na_per_feature
+is.vector(na_per_feature)
+
+#Check number of observations WITHOUT Click Fraud
+percent_attributed_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
+percent_attributed_dataset
+#Validate whether the sum the percent of the number of observations WITHOUT Click Fraud and the number of NA's per feature "attributed_time" (where is_attributed = 0) adds up to 1 and thus suggest the conclusion that NA's occur only when 
+
+sum(percent_attributed_dataset, na_per_feature[7])
+
+# Conclusion: NA's only occur in the feature "attributed_time" when "is_attributed"=0, meaning that the app was not downloaded and Click Fraud has happened. This observation does make sense intuitively, since "attributed_time" tells us when an app was downloaded. When an app was not downloaded (is_attributed=0), there can be no information about the download time ("attributed_time").
+# We face systematic NA (not MAR). The missingness fully depends on "is_attributed".
+
+#b) Visualize the Data
+
+str(dataset)
+
+#ip
+
+#app
+
+#device
+
+#os
+
+#channel
+
+#click_time
+
+#attributed_time
+
+#is_attributed
+
 
 ## Basic Statistics of the two sets
 # Examine Data
@@ -137,13 +138,27 @@ summary(dataset)
 hist(dataset$ip)
 hist(dataset$os)
 
+#b) Check interesting statistics
+
+# Research Questions:
+# 1. Which time does make it likely that Click Fraud has happened?
+#   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
+#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?
+
+# 2.  Which OS does make it most likely that Click Fraud has happened?
+#   Can you filter out certain OS in conjunction with certain devices at which Click Fraud comes up more likely?
+
+# 3.  Are their IP addresses which can be clearly assigned to a bot?
+#   •   Is there a certain pattern in IP adresses based on those with click fraud?
+#   Do those come from a certain country (e.g. where a certain proxy came from)?
+
 
 ##Check distribution of fraudulent and real clicks
 plot(dataset$is_attributed)
-#Check percentage of fraudulent clicks based on the dataset
-percent_fraud_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
-percent_fraud_dataset
-#Check absolute number of fraudulent clicks
+#Check percentage of non-fraudulent clicks based on the dataset
+percent_attributed_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
+percent_attributed_dataset
+#Check absolute number of non-fraudulent clicks
 nrow(subset(dataset, dataset$is_attributed==1))
 
 #Check percentage of "real" clicks based on the dataset
@@ -180,7 +195,6 @@ library(dplyr)
 #Verify that data is in a correct structure (dataframe/tibble) & check structure
 class(training_set)
 str(training_set)
-glimpse(training_set)
 summary(training_set)
 
 class(test_set)
@@ -188,40 +202,39 @@ str(test_set)
 summary(test_set)
 
 
-# Transform variabels into factors (validate if this is needed for every variable)
-
-# dataset$ip = as.factor(dataset$ip)
-# dataset$app = as.factor(dataset$app)
-# dataset$device = as.factor(dataset$device)
-# dataset$os = as.factor(dataset$os)
-# dataset$channel = as.factor(dataset$channel)
-str(dataset)
-
-## Adapt the Data Format 
-
 # a) Take care of NA - Even necessarry with Naive Bayes?
-# Column "attributed_time"
-# Maybe use seperate Naive Bayes Classifier in order to classify the NA's
-    # Wird wahrscheinlich aber nicht möglich sein, weil Time variable NA's hat und damit viel zu viele Klassen, die predicted werden müssten
+
+    # Column "attributed_time"
+    # Maybe use seperate Naive Bayes Classifier in order to classify the NA's
+        # Wird wahrscheinlich aber nicht möglich sein, weil Time variable NA's hat und damit viel zu viele Klassen, die predicted werden müssten
+
+## Binning 
+# Apply on the variables "click_time" and "attributed_time" - POSIXct format
+
+?cut.POSIXt
+?cut
+
+# x <- as.POSIXct("2016-01-01 00:00:00", tz="UTC") + as.difftime(30*(0:47),units="mins")
+# cut(x, breaks="2 hours", labels=FALSE)
+# # or to show more clearly the results:
+# data.frame(x, cuts = cut(x, breaks="2 hours", labels=FALSE))
+
+
 #Evtl auch binning in Stunden und Dates machen, ohne Minuten und Sekunden - aber nochmal abgleichen mit Data Preprocessing in Data Mining Buch
-dataset$attributed_time = ifelse
 
-# a) Binning necesarry to convert variables
 
-# b) Add ID column (?)
-
-# c) Converting chr into factor (?)
-
-# d) Remove highly correlated variables
+# Remove highly correlated variables
 
 
 
 # 4) Modeling ----------------------------------------------------------------
-# 4.1) Basic ---------------------------------------------------------------
+
+library(randomForest)
+randomForest(is_attributed~., data=training_set, ntree=500)
+?randomForest
 
 #Method 1 -----------------
 set.seed(123)
-
 # install.packages('e1071')
 library(e1071)
 classifier = naiveBayes(x = training_set[-8],
@@ -254,17 +267,17 @@ classfifier_2 <- naive_bayes(is_attributed ~ ., data=training_set, laplace=1)
 # Observe the new predicted probabilities for a weekend afternoon
 y_predict <- predict(locmodel2, newdata=test_set[-8], type = "prob")
 
-# 4.2) Extensions ---------------------------------------------------------
 
-set.seed(987)
+# 5.  Inference: Which feature does help most to predict whether Click Fraud has happened or not?
+#   Is it really one feature or a combination of different features?
 
-# Gaussian Naive Bayes - Wahrscheinlich nicht notwendig, da keine real-valued inputs, sondern eigentlich nur Factors
+# 7.  How fast does the Naive Bayes Classifier calculate the result? Is in that time a major advantage in comparison to other algorithms? What exactly do we have to measure in order to check the time - prediction function of the classifier on the data_forecast set?
 
-# Parameter Tuning - Siehe Springleaf und riesiger For Loop mit verschiedenen Parameters
+# 9.  Kann man die Observations rausfiltern, bei denen die Wahrscheinlichkeit der Zuordnung zu einer Klasse nur marginal höher ist als die Zuordnung der anderen Klasse (z.B. 0.51 Klasse 1 vs. 0.49 für Klasse 2? Gibt es hierfür bestimmte Parameter, die man noch angeben kann?
+#     •   P(Click Fraud | All Features) vs. P(Click Fraud | only a certain feature)
+  
 
-# Interaction Effects in das Modell integriert
 
-#Multinomial Naive Bayes (nach dem Algorithms in Data Science Buch)
 
 # 5) Model Performance -------------------------------------------------------
 
