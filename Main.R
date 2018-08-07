@@ -113,20 +113,6 @@ dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time, levels=c("
 head(dataset)
 str(dataset)
 
-# # #Test: Binning on click_exact_time - 24 intervals
-# # # Binning on click_exact_time
-# dataset$bins_click_exact_time2 = NA
-# dataset$bins_click_exact_time2 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
-#                                      breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
-#                                      labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
-# 
-# dataset$bins_click_exact_time2 = as.character(dataset$bins_click_exact_time2)
-# ind = which(is.na(dataset$bins_click_exact_time2))
-# dataset$bins_click_exact_time2[ind] = "23-24"
-# # # Convert bin variable into factor
-# dataset$bins_click_exact_time2 = as.factor(dataset$bins_click_exact_time2)
-# # dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time2, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
-
 
 # b. Split into Training-/Testset ------------------------------------
 
@@ -285,17 +271,36 @@ hist(dataset$os)
 
 ct_os_device = table(dataset$os, dataset$device)
 
-# Get the number of the most frequent combination in the dataset 
+# Get how often of the most frequently occuring combination in the dataset 
 max(ct_os_device)
+
+df_ct_os_device=as.data.frame(ct_os_device)
+str(df_ct_os_device)
+
+df_ct_os_device[df_ct_os_device$Freq == 1128878L,]
+#Figure out the Index where the most frequently occuring combination is placed
+which(df_ct_os_device$Freq == 1128878L)
+# High number of occurences for os = 19 and device = 1
+
+#Check whether os = 19 and device = 1 always result in is_attributed = 0
+specific_fraud_combination = subset(dataset, subset= dataset$os == 19 & dataset$device == 1)
+summary(specific_fraud_combination)
+
+#Interesting: 1049716 click frauds came from this combination, but also 79162 natural
+
+percentage_fraudulent_specific_combination = 1-(79162/(1049716+79162))
+
+#IMPORTANT: Check the specific combination which has reached 1128878 occurences for os & device. If all these occurences have is_attributed = 0, we might be able to assume, that this os & device combination can be clearly assigned to a certain bot.
+
 # Get other statistics
 mean(ct_os_device)
 sd(ct_os_device)
 
 # Visualize 
 ggplot(data=as.data.frame(ct_os_device), aes(y=Freq)) + geom_boxplot()
-#We can see that there are certain combinations, which appear very frequent, whereas others not that much
+#We can see that there are certain combinations, which appear very frequently, whereas others not that much
 
-#Apply Chi-Square test to check interdependence 
+#Apply Chi-Square test to check independence 
 chisq.test(table(dataset$os, dataset$device))
 
 #Interpreation Results Chi-Squared Test: 
@@ -320,7 +325,7 @@ library(ggpubr)
 
 ct_channel_device = table(dataset$channel, dataset$device)
 
-# Get the number of the most frequent combination in the dataset 
+# Get how often of the most frequently occuring combination in the dataset
 max(ct_channel_device)
 
 # Get other statistics 
@@ -331,11 +336,29 @@ sd(ct_channel_device)
 ggplot(data=as.data.frame(ct_channel_device), aes(y=Freq)) + geom_boxplot()
 #We can see that there are certain combinations, which appear very frequent, whereas others not that much
 
-#Apply Chi-Square test to check interdependence 
+#Apply Chi-Square test to check independence 
 chisq.test(table(dataset$channel, dataset$device))
 
+# III. App & Channel
 
+ct_app_channel = table(dataset$app, dataset$channel)
 
+# Get how often of the most frequently occuring combination in the dataset 
+max(ct_app_channel)
+
+# Get other statistics 
+mean(ct_app_channel)
+sd(ct_app_channel)
+
+# Visualize
+ggplot(data=as.data.frame(ct_app_channel), aes(y=Freq)) + geom_boxplot()
+
+#Apply Chi-Square test to check independence 
+chisq.test(table(dataset$app, dataset$channel))
+
+check = as.data.frame(ct_app_channel)
+View(check)
+str(dataset)
 
 # 4) Modeling --------------------------------------------------------------
 
@@ -354,6 +377,10 @@ set.seed(213)
 # 0) Excluding ip and including two bins
 classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace = 0.01)
 y_pred_0 = predict(classifier_0, newdata = test_set[-9])
+
+print(classifier_0)
+
+
 
 # 1) IP included and click_time excluded (only bins_click_time)
 classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
@@ -693,6 +720,8 @@ library(e1071)
 
 # Non-used Code --------------------------------
 
+frequent_os_device = subset(df_ct_os_device, subset = df_ct_os_device&Freq == 1128878)
+
 # # III. IP & Device
 # 
 # # ct_ip_device = table(dataset$ip, dataset$device) #does not work due to many different categories for the ip variable
@@ -708,7 +737,7 @@ library(e1071)
 # ggplot(data=as.data.frame(ct_ip_device), aes(y=Freq)) + geom_boxplot()
 # #We can see that there are certain combinations, which appear very frequent, whereas others not that much
 # 
-# #Apply Chi-Square test to check interdependence 
+# #Apply Chi-Square test to check independence 
 # chisq.test(table(dataset$ip, dataset$device))
 
 # install.packages("descr")
@@ -877,3 +906,20 @@ ggplot(data=dataset, aes(x=))
 summary(dataset)
 str(dataset)
 library(dplyr)
+
+
+# 24h binning -------------------------------------------------------------
+
+# # #Test: Binning on click_exact_time - 24 intervals
+# # # Binning on click_exact_time
+# dataset$bins_click_exact_time2 = NA
+# dataset$bins_click_exact_time2 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
+#                                      breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
+#                                      labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
+# 
+# dataset$bins_click_exact_time2 = as.character(dataset$bins_click_exact_time2)
+# ind = which(is.na(dataset$bins_click_exact_time2))
+# dataset$bins_click_exact_time2[ind] = "23-24"
+# # # Convert bin variable into factor
+# dataset$bins_click_exact_time2 = as.factor(dataset$bins_click_exact_time2)
+# # dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time2, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
