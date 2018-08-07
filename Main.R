@@ -1,4 +1,4 @@
-!diagnostics off
+# !diagnostics
 
 # Seminar Instructions ----------------------------------------------------
 
@@ -29,6 +29,7 @@
 # • 200,000 observations for forecast
 
 #Information regarding features 
+
 
 
 
@@ -72,8 +73,10 @@ head(data_forecast)
 head(dataset)
 
 
+
 # 2) Data Preparation --------------------------------------------------------
 library(dplyr)
+
 
 # a. Apply binning --------------------------------------------------------
 
@@ -128,10 +131,8 @@ str(dataset)
 # dataset$bins_click_exact_time2 = as.factor(dataset$bins_click_exact_time2)
 # # dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time2, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
 
-# b. Treat highly correlated variables ------------------------------------
 
-
-# c. Split into Training-/Testset ------------------------------------
+# b. Split into Training-/Testset ------------------------------------
 
 # install.packages("ISLR")
 library(ISLR)
@@ -147,6 +148,7 @@ test_set=dataset[-train_ind,]  # creates the test dataset excluding the row numb
 # Check whether transformations have worked out and control the size of the training- & testset
 str(training_set)
 str(test_set)
+
 
 
 
@@ -283,7 +285,41 @@ hist(dataset$os)
 
 # d. Check Correlations ------------------------------------------------------
 
+# I. OS & Device
 
+ct_os_device = table(dataset$os, dataset$device)
+
+# Get the number of the most frequent combination in the dataset 
+max(ct_os_device)
+
+#Apply Chi-Square test to check interdependence 
+chisq.test(table(dataset$os, dataset$device))
+
+#Interpreation Results Chi-Squared Test: 
+# If p-value here is lower than 0.05 (which is the case), then this means that both variables are dependent (null-hypothesis would test whether they are independent)
+# The null hypothesis for this test is that there is no relationship between OS  and Device  The alternative hypothesis is that there is a relationship between OS and Device.
+
+# Test which combination is most often observable in the dataset 
+max(table(dataset$os, dataset$device))
+
+
+# Try to visualize the relationship between two variables
+
+# install.packages("ggpubr")
+library(ggpubr)
+
+#Balloonplot
+ggballoonplot(data=as.data.frame(table(dataset$os, dataset$device)), x=ct_os_device$os, y=ct_os_device$device)
+
+# Correspondence Analysis 
+# install.packages("FactoMineR")
+library(FactoMineR)
+CA_os_device = CA(table(dataset$os, dataset$device), ncp=10)
+MCA_os_device = MCA(table(dataset$os, dataset$device), ncp=10)
+
+# II. Channel & Device 
+
+# III. App &
 
 
 # 4) Modeling --------------------------------------------------------------
@@ -641,6 +677,16 @@ library(e1071)
 
 
 # Non-used Code --------------------------------
+
+# install.packages("descr")
+# library(descr)
+# CrossTable(dataset$os, dataset$device, chisq = TRUE)
+# 
+# # install.packages("gmodels")
+# library(gmodels)
+# CrossTable(dataset$os, dataset$device)
+
+# b. Treat highly correlated variables 
 
 # back_up = as.tibble(fread("train-all.csv", na.strings = ""))
 # dataset = as.tibble(fread("train-all.csv", na.strings = ""))
