@@ -1,6 +1,6 @@
-# !diagnostics
-
 # Seminar Instructions ----------------------------------------------------
+
+#FEATURE INFORMATION
 
 # • ip: ip address of click.
 # • app: app id for marketing.
@@ -27,10 +27,6 @@
 # and industry channel
 # • More than 5 million observations for training
 # • 200,000 observations for forecast
-
-#Information regarding features 
-
-
 
 
 # 1) Data Import ---------------------------------------------------------------
@@ -283,7 +279,7 @@ summary(dataset)
 hist(dataset$ip)
 hist(dataset$os)
 
-# d. Check Correlations ------------------------------------------------------
+# d. Check Relationships between Variables ------------------------------------------------------
 
 # I. OS & Device
 
@@ -291,6 +287,13 @@ ct_os_device = table(dataset$os, dataset$device)
 
 # Get the number of the most frequent combination in the dataset 
 max(ct_os_device)
+# Get other statistics
+mean(ct_os_device)
+sd(ct_os_device)
+
+# Visualize 
+ggplot(data=as.data.frame(ct_os_device), aes(y=Freq)) + geom_boxplot()
+#We can see that there are certain combinations, which appear very frequent, whereas others not that much
 
 #Apply Chi-Square test to check interdependence 
 chisq.test(table(dataset$os, dataset$device))
@@ -299,27 +302,39 @@ chisq.test(table(dataset$os, dataset$device))
 # If p-value here is lower than 0.05 (which is the case), then this means that both variables are dependent (null-hypothesis would test whether they are independent)
 # The null hypothesis for this test is that there is no relationship between OS  and Device  The alternative hypothesis is that there is a relationship between OS and Device.
 
-# Test which combination is most often observable in the dataset 
-max(table(dataset$os, dataset$device))
-
-
 # Try to visualize the relationship between two variables
 
 # install.packages("ggpubr")
 library(ggpubr)
 
 #Balloonplot
-ggballoonplot(data=as.data.frame(table(dataset$os, dataset$device)), x=ct_os_device$os, y=ct_os_device$device)
+# ggballoonplot(data=as.data.frame(table(dataset$os, dataset$device)), x=ct_os_device$os, y=ct_os_device$device)
 
-# Correspondence Analysis 
-# install.packages("FactoMineR")
-library(FactoMineR)
-CA_os_device = CA(table(dataset$os, dataset$device), ncp=10)
-MCA_os_device = MCA(table(dataset$os, dataset$device), ncp=10)
+# # Correspondence Analysis 
+# # install.packages("FactoMineR")
+# library(FactoMineR)
+# CA_os_device = CA(table(dataset$os, dataset$device), ncp=10)
+# MCA_os_device = MCA(table(dataset$os, dataset$device), ncp=10)
 
-# II. Channel & Device 
+# II. Channel & Device
 
-# III. App &
+ct_channel_device = table(dataset$channel, dataset$device)
+
+# Get the number of the most frequent combination in the dataset 
+max(ct_channel_device)
+
+# Get other statistics 
+mean(ct_channel_device)
+sd(ct_channel_device)
+
+# Visualize
+ggplot(data=as.data.frame(ct_channel_device), aes(y=Freq)) + geom_boxplot()
+#We can see that there are certain combinations, which appear very frequent, whereas others not that much
+
+#Apply Chi-Square test to check interdependence 
+chisq.test(table(dataset$channel, dataset$device))
+
+
 
 
 # 4) Modeling --------------------------------------------------------------
@@ -677,6 +692,24 @@ library(e1071)
 
 
 # Non-used Code --------------------------------
+
+# # III. IP & Device
+# 
+# # ct_ip_device = table(dataset$ip, dataset$device) #does not work due to many different categories for the ip variable
+# 
+# # Get the number of the most frequent combination in the dataset 
+# max(ct_ip_device)
+# 
+# # Get other statistics 
+# mean(ct_ip_device)
+# sd(ct_ip_device)
+# 
+# # Visualize
+# ggplot(data=as.data.frame(ct_ip_device), aes(y=Freq)) + geom_boxplot()
+# #We can see that there are certain combinations, which appear very frequent, whereas others not that much
+# 
+# #Apply Chi-Square test to check interdependence 
+# chisq.test(table(dataset$ip, dataset$device))
 
 # install.packages("descr")
 # library(descr)
