@@ -1,3 +1,5 @@
+!diagnostics off
+
 # Seminar Instructions ----------------------------------------------------
 
 # • ip: ip address of click.
@@ -44,23 +46,19 @@ library(data.table)
 library(tibble)
 back_up = as.tibble(fread("train-all.csv", na.strings = ""))
 dataset = as.tibble(fread("train-all.csv", na.strings = ""))
-head(dataset)
 
 # Convert the variables "ip", "app", "device", "os", "channel" & the target variable "is_attributed" into factors 
 convert_features <- c("ip", "app", "device", "os", "channel", "is_attributed")
 dataset[convert_features] <- lapply(dataset[convert_features], factor)
-head(dataset)
 
 #Convert th variables "click_time" & "attributed_time" into POSIXct format
 # install.packages("fasttime")
 library(fasttime)
 dataset$click_time = fastPOSIXct(dataset$click_time)
 dataset$attributed_time = fastPOSIXct(dataset$attributed_time)
-head(dataset)
 
 #Load data which should be forecasted
 data_forecast = as.tibble(fread("test-all.csv", na.strings = ""))
-head(data_forecast)
 
 # Convert the variables "click_id", "ip", "app", "device", "os" and "channel" into factors
 convert_features_fc <- c("ip", "app", "device", "os", "channel")
@@ -71,8 +69,70 @@ data_forecast$click_time = fastPOSIXct(data_forecast$click_time)
 
 # Control if transformation of variables was successful 
 head(data_forecast)
+head(dataset)
 
-#Split complete dataset into two sets: Training & Test-set
+
+# 2) Data Preparation --------------------------------------------------------
+library(dplyr)
+
+# a. Apply binning --------------------------------------------------------
+
+# Separate date and time information into two variables and apply binning on them separately to prepare for Naive Bayes
+
+# install.packages("tidyr")
+library(tidyr)
+
+# i. Separation of "click_time"
+#Separate blick_time variable into "click_date" and "click_exact_time"
+dataset = separate(dataset, col=click_time, into = c("click_date", "click_exact_time"), sep= " ")
+str(dataset)
+
+# Convert variables "click_date" and "click_exact_time" into right formats -> Date and Time 
+# install.packages("lubridate")
+library(lubridate)
+dataset$click_date = ymd(dataset$click_date) #choose this for date
+
+#Apply binning on "click_date" and "click_exact_time"
+
+# Binning on click_data
+dataset$bins_click_date = NA
+dataset$bins_click_date = cut(dataset$click_date, breaks="1 day", labels=FALSE) #works fine if previously converted
+# Convert bin variable into factor
+dataset$bins_click_date = as.factor(dataset$bins_click_date)
+dataset$bins_click_date = factor(dataset$bins_click_date, levels=c("1","2","3","4"))
+
+# Binning on click_exact_time - 12 intervals
+dataset$bins_click_exact_time = NA
+dataset$bins_click_exact_time <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"), breaks=strptime(c("00:00:00","02:00:00","04:00:00","06:00:00","08:00:00","10:00:00","12:00:00","14:00:00","16:00:00","18:00:00","20:00:00","22:00:00"), format= "%H:%M:%S"), labels = c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22"))
+dataset$bins_click_exact_time = as.character(dataset$bins_click_exact_time)
+ind = which(is.na(dataset$bins_click_exact_time))
+dataset$bins_click_exact_time[ind] = "22-24"
+# Convert bin variable into factor
+dataset$bins_click_exact_time = as.factor(dataset$bins_click_exact_time)
+dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
+
+head(dataset)
+str(dataset)
+
+# # #Test: Binning on click_exact_time - 24 intervals
+# # # Binning on click_exact_time
+# dataset$bins_click_exact_time2 = NA
+# dataset$bins_click_exact_time2 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
+#                                      breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
+#                                      labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
+# 
+# dataset$bins_click_exact_time2 = as.character(dataset$bins_click_exact_time2)
+# ind = which(is.na(dataset$bins_click_exact_time2))
+# dataset$bins_click_exact_time2[ind] = "23-24"
+# # # Convert bin variable into factor
+# dataset$bins_click_exact_time2 = as.factor(dataset$bins_click_exact_time2)
+# # dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time2, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
+
+# b. Treat highly correlated variables ------------------------------------
+
+
+# c. Split into Training-/Testset ------------------------------------
+
 # install.packages("ISLR")
 library(ISLR)
 attach(dataset)
@@ -88,18 +148,33 @@ test_set=dataset[-train_ind,]  # creates the test dataset excluding the row numb
 str(training_set)
 str(test_set)
 
-# 2) Data Exploration --------------------------------------------------------
+
+
+
+# 3) Data Exploration --------------------------------------------------------
 #install.packages("purrr")
 library(purrr)
 
-#a) Check NA's
+# a. Check NA's -----------------------------------------------------------
+
+#Check if NA's occur
+any(is.na(dataset))
+sum(is.na(dataset))
+which(is.na(dataset))
+
+#Part of dataset without NA's
+dim(dataset[complete.cases(dataset), ])
+# alt: na.omit(dataset)
+
+#Part of dataset with NA's
+dim(dataset[!complete.cases(dataset), ])
 
 # Check percentage of NA's for each feature for the whole dataset
 na_per_feature = apply(dataset, 2, function(col) sum(is.na(col))/length(col))
 na_per_feature
 is.vector(na_per_feature)
 
-#Check number of observations WITHOUT Click Fraud
+#Check percentage of observations WITHOUT Click Fraud
 percent_attributed_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
 percent_attributed_dataset
 #Validate whether the sum the percent of the number of observations WITHOUT Click Fraud and the number of NA's per feature "attributed_time" (where is_attributed = 0) adds up to 1 and thus suggest the conclusion that NA's occur only when 
@@ -109,25 +184,93 @@ sum(percent_attributed_dataset, na_per_feature[7])
 # Conclusion: NA's only occur in the feature "attributed_time" when "is_attributed"=0, meaning that the app was not downloaded and Click Fraud has happened. This observation does make sense intuitively, since "attributed_time" tells us when an app was downloaded. When an app was not downloaded (is_attributed=0), there can be no information about the download time ("attributed_time").
 # We face systematic NA (not MAR). The missingness fully depends on "is_attributed".
 
-#b) Visualize the Data
+#General
 
+# b. Get Basic Statistics -------------------------------------------------------------
+
+# Get different datasets based on fraudulent and natural clicks
+ds_is_attributed_1 = subset(dataset, subset=dataset$is_attributed==1)
+ds_is_attributed_0 = subset(dataset, subset=dataset$is_attributed==0)
+
+library(dplyr)
+summary(dataset)
+
+#Get number of days considered in dataset based on bins created
+number_of_days = ((length(unique(dataset$bins_click_time)))*2)/24
+number_of_days
+
+##Check distribution of fraudulent and real clicks
+plot(dataset$is_attributed)
+
+#Check percentage of non-fraudulent clicks based on the dataset
+percent_natural = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
+percent_natural
+#Check absolute number of non-fraudulent clicks
+nrow(subset(dataset, dataset$is_attributed==1))
+
+#Check percentage of fraudulent clicks based on the dataset
+percent_fraud = nrow(subset(dataset, dataset$is_attributed==0))/nrow(dataset)
+percent_fraud
+
+#Check absolute number of fraudulent clicks
+number_frauds = nrow(subset(dataset, dataset$is_attributed==0))
+
+#Get number of unique values per feature
+str(dataset)
+number_ip = length(unique(dataset$ip))
+number_apps = length(unique(dataset$app))
+number_devices = length(unique(dataset$device))
+number_os = length(unique(dataset$os))
+number_channels = length(unique(dataset$channel))
+  
+
+# c. Explore each Feature --------------------------------------------------
+
+# install.packages("ggplot2")
+library(ggplot2)
 str(dataset)
 
-#ip
+# I. ip
+ggplot(data=dataset, aes(x=ip)) + geom_bar()
 
-#app
 
-#device
+# 3.  Are their IP addresses which can be clearly assigned to a bot?
+#   •   Is there a certain pattern in IP adresses based on those with click fraud?
+#   Do those come from a certain country (e.g. where a certain proxy came from)?
 
-#os
+# II. app
+ggplot(data=dataset, aes(x=app)) + geom_bar()
 
-#channel
+# III. device
+ggplot(data=dataset, aes(x=device)) + geom_bar()
 
-#click_time
+# IV. os
 
-#attributed_time
+# 2.  Which OS does make it most likely that Click Fraud has happened?
+#   Can you filter out certain OS in conjunction with certain devices at which Click Fraud comes up more likely?
 
-#is_attributed
+ggplot(data=dataset, aes(x=os)) + geom_bar()
+
+# V. channel
+ggplot(data=dataset, aes(x=channel)) + geom_bar()
+
+# VI. click_time
+
+# Compare time distribution based on the click_time of fraudulent and natural clicks
+ggplot(data=ds_is_attributed_1, aes(x=ds_is_attributed_1$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Natural Clicks based on Time")
+ggplot(data=ds_is_attributed_0, aes(x=ds_is_attributed_0$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Fraudulent Clicks based on Time")
+
+# 1. Which time does make it likely that Click Fraud has happened?
+#   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
+#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?
+
+min(dataset$click_date)
+max(dataset$click_date)
+
+#Dataset represents 4 days - Monday until Thursday
+
+
+# VII. attributed_time
 
 
 ## Basic Statistics of the two sets
@@ -138,122 +281,65 @@ summary(dataset)
 hist(dataset$ip)
 hist(dataset$os)
 
-#b) Check interesting statistics
-
-# Research Questions:
-# 1. Which time does make it likely that Click Fraud has happened?
-#   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
-#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?
-
-# 2.  Which OS does make it most likely that Click Fraud has happened?
-#   Can you filter out certain OS in conjunction with certain devices at which Click Fraud comes up more likely?
-
-# 3.  Are their IP addresses which can be clearly assigned to a bot?
-#   •   Is there a certain pattern in IP adresses based on those with click fraud?
-#   Do those come from a certain country (e.g. where a certain proxy came from)?
-
-
-##Check distribution of fraudulent and real clicks
-plot(dataset$is_attributed)
-#Check percentage of non-fraudulent clicks based on the dataset
-percent_attributed_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
-percent_attributed_dataset
-#Check absolute number of non-fraudulent clicks
-nrow(subset(dataset, dataset$is_attributed==1))
-
-#Check percentage of "real" clicks based on the dataset
-percent_real_dataset = nrow(subset(dataset, dataset$is_attributed==0))/nrow(dataset)
-percent_real_dataset
-#Check absolute number of real clicks
-nrow(subset(dataset, dataset$is_attributed==0))
-
-#Get different unique OS
-unique(dataset$os)
-#Get number of different OS included in the Dataset
-str(dataset$os)
-
-
-# Check correlation between features
-correlations = cor(training_set)
-install.packages("xtable")
-library(xtable)
-#Check correlations between variables, which might by dependent 
-cor(dataset$device, dataset$os)
-cor(dataset$device, dataset$ip)
-cor(dataset$channel, dataset$ip)
-
-# install.packages("Hmisc")
-library(Hmisc)
-#Get correlations with sig. convert to matrix first
-rcorr(as.matrix(dataset$ip), as.matrix(dataset$channel))
-
-#Frage: Ist das Ergebnis nicht falsch, weil im Datensatz die einzelnen Column noch nicht in factor umgewandelt wurde, sondern alle noch Integer sind?
-
-# 3) Data Preparation --------------------------------------------------------
-library(dplyr)
-
-#Verify that data is in a correct structure (dataframe/tibble) & check structure
-class(training_set)
-str(training_set)
-summary(training_set)
-
-class(test_set)
-str(test_set)
-summary(test_set)
-
-
-# a) Take care of NA - Even necessarry with Naive Bayes?
-
-    # Column "attributed_time"
-    # Maybe use seperate Naive Bayes Classifier in order to classify the NA's
-        # Wird wahrscheinlich aber nicht möglich sein, weil Time variable NA's hat und damit viel zu viele Klassen, die predicted werden müssten
-
-## Binning 
-# Apply on the variables "click_time" and "attributed_time" - POSIXct format
-
-?cut.POSIXt
-?cut
-
-# x <- as.POSIXct("2016-01-01 00:00:00", tz="UTC") + as.difftime(30*(0:47),units="mins")
-# cut(x, breaks="2 hours", labels=FALSE)
-# # or to show more clearly the results:
-# data.frame(x, cuts = cut(x, breaks="2 hours", labels=FALSE))
-
-
-#Evtl auch binning in Stunden und Dates machen, ohne Minuten und Sekunden - aber nochmal abgleichen mit Data Preprocessing in Data Mining Buch
-
-
-# Remove highly correlated variables
+# d. Check Correlations ------------------------------------------------------
 
 
 
-# 4) Modeling ----------------------------------------------------------------
 
-library(randomForest)
-randomForest(is_attributed~., data=training_set, ntree=500)
-?randomForest
+# 4) Modeling --------------------------------------------------------------
 
-#Method 1 -----------------
-set.seed(123)
+## Method 1 - Naive Bayes from "e1071"-package
 # install.packages('e1071')
 library(e1071)
-classifier = naiveBayes(x = training_set[-8],
-                        y = training_set$is_attributed)
-classifier = naiveBayes(is_attributed ~ ., data= training_set)
+# install.packages("MLmetrics")
+library(MLmetrics)
+# install.packages("pROC")
+library(pROC)
 
-class(classifier)
-summary(classifier) #Summary gives conditional probabilities across all features
+## CLASSIFIER: Try Naive Bayes classifiers with different inputs and compare performance
+
+set.seed(213)
+
+# 0) Excluding ip and including two bins
+classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace = 0.01)
+y_pred_0 = predict(classifier_0, newdata = test_set[-9])
+
+# 1) IP included and click_time excluded (only bins_click_time)
+classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
+y_pred_1 = predict(classifier_1, newdata = test_set[-9])
+
+# 2)  Excluding OS and IP
+classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_time, data= training_set, laplace = 1)
+# test_set$y_pred = predict(classifier, newdata = test_set)
+y_pred_4 = predict(classifier_2, newdata = test_set[-9])
+
+table(y_pred_2)
+confusionMatrix(data = y_pred_2, reference = test_set$is_attributed)
+F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_2)
+Precision(y_true = test_set$is_attributed, y_pred = y_pred_2)
+Recall(y_true = test_set$is_attributed, y_pred = y_pred_2)
+
+
+# 3) IP excluded
+classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_time, data= training_set)
+y_pred_3 = predict(classifier_3, newdata = test_set[-9])
+
+# 4) complete
+classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data= training_set)
+y_pred_4 = predict(classifier_4, newdata = test_set[-9])
 
 print(classifier)
+summary(classifier) #Summary gives conditional probabilities across all features
 
-# test_set$y_pred = predict(classifier, newdata = test_set)
-y_pred = predict(classifier, newdata = test_set[-8])
-table(y_pred)  #Inspiration: table(predictions_mlr[,1],Titanic_dataset$Survived)
 
-# Making the Confusion Matrix
-cm = table(test_set[, 8], y_pred)
+#Insert correct classifier model object
+y_pred = predict(classifier_ex_, newdata = test_set[-9])
 
-# Method 2 -----------------
+#Get total number of 0 and 1 values
+table(y_pred)  
+
+
+## Method 2 - Naive Bayes from "naivebayes"-package
 
 set.seed(987)
 
@@ -262,11 +348,17 @@ set.seed(987)
 library(naivebayes)
 
 # Build a new model using the Laplace correction
-classfifier_2 <- naive_bayes(is_attributed ~ ., data=training_set, laplace=1)
+classifier_2 <- naive_bayes(is_attributed ~ app + device + os + channel + bins_click_time, data=training_set, laplace=1)
+
 
 # Observe the new predicted probabilities for a weekend afternoon
-y_predict <- predict(locmodel2, newdata=test_set[-8], type = "prob")
+y_predict_2 <- predict(classifier_2, newdata=test_set[-8])
 
+F1_Method_2 = F1_Score(y_true = test_set$is_attributed, y_pred = y_predict_2)
+Accuracy(y_true = test_set$is_attributed, y_pred = y_predict_2)
+
+
+# Additional Comments ___________________________________
 
 # 5.  Inference: Which feature does help most to predict whether Click Fraud has happened or not?
 #   Is it really one feature or a combination of different features?
@@ -277,37 +369,119 @@ y_predict <- predict(locmodel2, newdata=test_set[-8], type = "prob")
 #     •   P(Click Fraud | All Features) vs. P(Click Fraud | only a certain feature)
   
 
-
-
 # 5) Model Performance -------------------------------------------------------
 
+# CREATE the Confusion Matrix
+# install.packages("caret")
+library(caret)
+# install.packages("ML)
+confusionMatrix(data = y_pred, reference = test_set$is_attributed)
+
+## Get F1-Score
+
+F1_Method_1 = F1_Score(y_true = test_set$is_attributed, y_pred = y_pred)
+F1_Method_1
+
+Precision(y_true = test_set$is_attributed, y_pred = y_pred)
+Recall(y_true = test_set$is_attributed, y_pred = y_pred)
+
+
 apply(dataset)
-install.packages("MLmetrics")
-library(MLmetrics)
 
-# Training / Test Split
-# k-fold Cross Validation
 
-# a) False Positives & False Negatives
-# b) F1 Score
+
+# Precision = Precision(y_true = test_set$is_attributed, y_pred = i)
+# , data_y = test_set$is_attributed
+
+Precision()
+
+#Model Performance Training Set
+
+
+#Model Performance Test Set
+
+
+get_model_performance = function (predict_variable, y_reference = test_set$is_attributed){
+  library(MLmetrics)
+  library(caret)
+  require(MLmetrics)
+  require(caret)
+  
+  Table_Predictions = table(predict_variable)
+  Confusion_Matrix = confusionMatrix(data = predict_variable, reference = y_reference)
+  Precision_Score = Precision(y_true = y_reference, y_pred = predict_variable)
+  Recall_Score = Recall(y_true = y_reference, y_pred = predict_variable)
+  F1 = F1_Score(y_true = y_reference, y_pred = predict_variable)
+  Accuracy_Score = Accuracy(y_true = y_reference, y_pred = predict_variable)
+  
+  print(list(Table_Predictions=Table_Predictions, Confusion_Matrix=Confusion_Matrix, Precision_Score=Precision_Score, Recall_Score=Recall_Score, F1=F1, Accuracy_Score=Accuracy_Score))
+}
+
+#Get Performance for y_pred_0
+get_model_performance(predict_variable = y_pred_0, y_reference = test_set$is_attributed)
+
+?require
+
 # c) ROC Curve
-
-# d) Confusion Matrix
 # e) CAP Curve
 
-# e) Gini Coefficient (?)
-
-## Model Performance - Basic
-
-## Model Performance - Extensions
 
 
-# 6) Data Visualization ------------------------------------------------------
+# 6) Performance Visualization ------------------------------------------------------
 
 #https://datascienceplus.com/machine-learning-results-one-plot-to-rule-them-all/
 # Check different plots to visualize classification results
 
-# Comparison with Performance of other Algorithms -------------------------
+
+# 7) Forecast -------------------------------------------------------------
+
+#Apply same Data Preparation on "data_forecast" as on the basic "dataset"
+
+
+# a. Apply binning --------------------------------------------------------
+
+# i. Separation of "click_time"
+#Separate blick_time variable into "click_date" and "click_exact_time"
+data_forecast = separate(data_forecast, col=click_time, into = c("click_date", "click_exact_time"), sep= " ")
+str(data_forecast)
+
+# Convert variables "click_date" and "click_exact_time" into right formats -> Date and Time 
+# install.packages("lubridate")
+library(lubridate)
+data_forecast$click_date = ymd(data_forecast$click_date) #choose this for date
+
+#Apply binning on "click_date" and "click_exact_time"
+
+# Binning on click_data
+data_forecast$bins_click_date = NA
+data_forecast$bins_click_date = cut(data_forecast$click_date, breaks="1 day", labels=FALSE) #works fine if previously converted
+# Convert bin variable into factor
+data_forecast$bins_click_date = as.factor(data_forecast$bins_click_date)
+data_forecast$bins_click_date = factor(data_forecast$bins_click_date, levels=c("1","2","3","4"))
+
+# Binning on click_exact_time - 12 intervals
+data_forecast$bins_click_exact_time = NA
+data_forecast$bins_click_exact_time <- cut(strptime(data_forecast$click_exact_time, format = "%H:%M:%S"), breaks=strptime(c("00:00:00","02:00:00","04:00:00","06:00:00","08:00:00","10:00:00","12:00:00","14:00:00","16:00:00","18:00:00","20:00:00","22:00:00"), format= "%H:%M:%S"), labels = c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22"))
+data_forecast$bins_click_exact_time = as.character(data_forecast$bins_click_exact_time)
+ind = which(is.na(data_forecast$bins_click_exact_time))
+data_forecast$bins_click_exact_time[ind] = "22-24"
+# Convert bin variable into factor
+data_forecast$bins_click_exact_time = as.factor(data_forecast$bins_click_exact_time)
+data_forecast$bins_click_exact_time = factor(data_forecast$bins_click_exact_time, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
+
+
+# b. Get Basic Statistics -------------------------------------------------
+
+
+
+
+# c. Explore each Feature -------------------------------------------------
+
+
+
+
+# (d. Check Correlations) -------------------------------------------------
+
 
 # a) CART 
 # install.packages("ranger")
@@ -317,18 +491,24 @@ library(ranger)
 # install.packages("randomForest")
 library(randomForest)
 
+randomForest(formula=is_attributed ~ app + device + os + channel + bins_click_time, data= training_set)
+#Problem: 
+
 # c) Boosted Trees - XGBOOST
 # install.packages("xgboost")
 library(xgboost)
+#Problem: One-hot encoding wäre notwendig
 
 # d) SVM
 library(e1071)
 
 
-# 7) Model Performance Comparison  -------------------------------------------
+#(7) Model Performance Comparison)  -------------------------------------------
 
 
-# Sample Code Udemy -------------------------------------------------------------
+# Sample Code  -------------------------------------------------------------
+
+#Udemy
 
 #Sample Code for Naive Bayes for DIFFERENT problem
 
@@ -375,7 +555,7 @@ library(e1071)
 # points(set, pch = 21, bg = ifelse(set[, 3] == 1, 'green4', 'red3'))
 
 
-# Sample Code DataCamp ----------------------------------------------------
+# Sample Code DataCamp
 
 # building a Naive Bayes model
 # install.packages("naivebayes")
@@ -426,7 +606,7 @@ locmodel2 <- naive_bayes(location ~ daytype + hourtype, data=locations, laplace=
 predict(locmodel2, weekend_afternoon, type = "prob")
 
 
-# Sample Code R for Marketing Book ----------------------------------------
+# Sample Code R for Marketing Book
 
 # set.seed(04625) 
 # train.prop <- 0.65 
@@ -438,7 +618,7 @@ library(e1071)
 (initial_classified <- naiveBayes(is_attributed~., data=training_set))
 
 
-# Sample Code R bloggers --------------------------------------------------
+# Sample Code R bloggers
 
 # library (e1071)
 # ?naiveBayes
@@ -460,7 +640,161 @@ library(e1071)
 # table(predictions_mlr[,1],Titanic_dataset$Survived)
 
 
-# Best Practices ----------------------------------------------------------
+# Non-used Code --------------------------------
 
-# - Implement simple version of algorithm first
-# - Do not necessarily apply 80/20 split
+# back_up = as.tibble(fread("train-all.csv", na.strings = ""))
+# dataset = as.tibble(fread("train-all.csv", na.strings = ""))
+
+# table(y_pred_3)
+# confusionMatrix(data = y_pred_3, reference = test_set$is_attributed)
+# F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_3)
+# Precision(y_true = test_set$is_attributed, y_pred = y_pred_3)
+# Recall(y_true = test_set$is_attributed, y_pred = y_pred_3)
+# Accuracy(y_true = test_set$is_attributed, y_pred = y_pred_3)
+
+# table(y_pred_1)
+# confusionMatrix(data = y_pred_1, reference = test_set$is_attributed)
+# F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_1)
+# Precision(y_true = test_set$is_attributed, y_pred = y_pred_1)
+# Recall(y_true = test_set$is_attributed, y_pred = y_pred_1)
+ 
+table(y_pred_0)
+confusionMatrix(data = y_pred_0, reference = test_set$is_attributed)
+Precision(y_true = test_set$is_attributed, y_pred = y_pred_0)
+Recall(y_true = test_set$is_attributed, y_pred = y_pred_0)
+F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_0)
+Accuracy(y_true = test_set$is_attributed, y_pred = y_pred_0)
+
+get_model_performance = function (predict_variable, y_reference = test_set$is_attributed){
+  library(MLmetrics)
+  library(caret)
+  require(MLmetrics)
+  require(caret)
+  
+  table(y_pred_0)
+  confusionMatrix(data = y_pred_0, reference = test_set$is_attributed)
+  Precision(y_true = test_set$is_attributed, y_pred = y_pred_0)
+  Recall(y_true = test_set$is_attributed, y_pred = y_pred_0)
+  F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_0)
+  Accuracy(y_true = test_set$is_attributed, y_pred = y_pred_0)
+  
+  print(list(Confusion_Matrix, Precision_Score, Recall_Score, F1, Accuracy_Score))
+}
+
+# get_model_performance = function(i){
+#   table(i)
+#   Confusion_Matrix = confusionMatrix(data = test_set$is_attributed, reference = test_set$is_attributed)
+#   
+#   Recall = Recall(y_true = test_set$is_attributed, y_pred = i)
+#   F1 = F1_Score(y_true = test_set$is_attributed, y_pred = i)
+#   Accuracy = Accuracy(y_true = test_set$is_attributed, y_pred = i)
+#   list_performance = list(Confusion_Matrix=Confusion_Matrix, Precision= Precision, Recall=Recall, F1=F1, Accuracy=Accuracy)
+# }
+
+get_model_performance(i=y_pred_0)
+
+# install.packages("Hmisc")
+library(Hmisc)
+#Get correlations with sig. convert to matrix first
+rcorr(as.matrix(dataset$ip), as.matrix(dataset$channel))
+
+
+# Check correlation between features
+correlations = cor(training_set)
+install.packages("xtable")
+library(xtable)
+#Check correlations between variables, which might by dependent 
+# cor(dataset$device, dataset$os)
+# cor(dataset$device, dataset$ip)
+# cor(dataset$channel, dataset$ip)
+
+# dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
+
+# dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
+
+
+# Data Preparation: Binning
+
+# # ii. Separation of "attributed_time"
+# We did not consider attributed time, since it is only related to the is_attributed = 1 meaning the Click Frauds, it does not help to differentiate between Click Fraud non-click-fraud. Therefore, we did not consider that as input variable for Naive Bayes.
+
+# #Separate blick_time variable into "attributed_date" and "attributed_exact_time"
+# dataset = separate(dataset, col=attributed_time, into = c("attributed_date", "attributed_exact_time"), sep= " ")
+# 
+# # Convert variables "attributed_date" and "attributed_exact_time" into right formats -> Date and Time 
+# # install.packages("lubridate")
+# dataset$attributed_date = ymd(dataset$attributed_date) #choose this for date
+# 
+# #Apply binning on "click_date" and "click_exact_time"
+# # Binning on click_data
+# dataset$bins_attributed_date = cut(dataset$attributed_date, breaks="1 day", labels=FALSE) #works fine if previously converted
+# # Convert bin variable into factor
+# dataset$bins_attributed_date = as.factor(dataset$bins_attributed_date)
+# 
+# # Binning on click_exact_time
+# dataset$bins_attributed_exact_time <- cut(strptime(dataset$attributed_exact_time, format = "%H:%M:%S"), breaks=strptime(c("00:00:00","02:00:00","04:00:00","06:00:00","08:00:00","10:00:00","12:00:00","14:00:00","16:00:00","18:00:00","20:00:00","22:00:00"), format= "%H:%M:%S"), labels = c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22"))
+# dataset$bins_attributed_exact_time = as.character(dataset$bins_attributed_exact_time)
+# ind = which(is.na(dataset$bins_attributed_exact_time))
+# dataset$bins_attributed_exact_time[ind] = "22-24"
+# # Convert bin variable into factor
+# dataset$bins_attributed_exact_time = as.factor(dataset$bins_attributed_exact_time)
+
+
+
+# install.packages("lubridate")
+library(lubridate)
+
+# filter(FL_DATE >= as.Date("2014-01-05")) https://blog.exploratory.io/filter-with-date-function-ce8e84be680
+
+min(dataset$click_time)
+max(dataset$click_time)
+
+#Subset different days in order to apply separate binning on them later
+dataset_11_06 = subset(x=dataset, subset = dataset$click_time >= as.POSIXct("2017-11-06") & dataset$click_time < as.POSIXct("2017-11-07"))
+dataset_11_07 = subset(x=dataset, subset = dataset$click_time >= as.POSIXct("2017-11-07") & dataset$click_time < as.POSIXct("2017-11-08"))
+dataset_11_08 = subset(x=dataset, subset = dataset$click_time >= as.POSIXct("2017-11-08") & dataset$click_time < as.POSIXct("2017-11-09"))
+dataset_11_09 = subset(x=dataset, subset = dataset$click_time >= as.POSIXct("2017-11-09") & dataset$click_time < as.POSIXct("2017-11-10"))
+
+#Check whether subsetting has worked out correctly 
+(nrow(dataset_11_06)+nrow(dataset_11_07)+nrow(dataset_11_08)+nrow(dataset_11_09)) == nrow(dataset)
+
+dataset$click_exact_time <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"), breaks=strptime(c("00:00:00","02:00:00","04:00:00","06:00:00","08:00:00","10:00:00","12:00:00","14:00:00","16:00:00","18:00:00","20:00:00","22:00:00"), format= "%H:%M:%S"), 
+                                labels = c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22", "22-24"))
+
+dataset$click_exact_time = hms(dataset$click_exact_time)
+
+# dataset$bins_click_exact_time = cut(dataset$click_exact_time, breaks="2 hours", labels=FALSE)
+
+
+dataset$bins_click_exact_time <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"), breaks="2 hours", labels=FALSE)
+
+# #works fine
+# dataset$bins_click_exact_time = cut.Date(dataset$click_exact_time, breaks="2 hours", labels=FALSE) 
+
+
+
+dataset$bins_click_exact_time = cut(dataset$click_exact_time, breaks="2 hours", labels=FALSE) #does not work, since numeric
+dataset$bins_click_exact_time = cut.POSIXt(dataset$click_exact_time, breaks="2 hours", labels=FALSE) #does not work, since numeric
+
+
+# To Do: Wichtig, dass die bins pro Tag gleich sind und sich nicht fortsetzen an den einzelnen Tagen, weil man ansonsten beim forecast_set Probleme bekommt
+# Evtl. möglich, wenn man Datensatz nach Zeiten aufsteigend sortiert oder direkt spezifischen Tag anfiltert und dann für alle Tage manuell die bins setzt, sodass bins immer wieder beim gleichen Wert starten und bei dem gleichen Uhrzeitintervall
+
+
+filter(dataset, attributed_time == 0)
+
+str(dataset)
+dataset2 = dataset
+
+dataset2$attributed_time = as.character(dataset2$attributed_time)
+
+dataset_attributed_1 = dataset[dataset$attributed_time == 1, ]
+dataset_fraud_0 = dataset[dataset$attributed_time == 0, ]
+
+library(ggplot2)
+ggplot(data=dataset, aes(x=bins_click_exact_time)) + geom_bar()
+ggplot(data=dataset, aes(x=))
+
+summary(dataset)
+str(dataset)
+library(dplyr)
