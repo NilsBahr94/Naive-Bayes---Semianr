@@ -114,6 +114,7 @@ head(dataset)
 str(dataset)
 
 
+
 # b. Split into Training-/Testset ------------------------------------
 
 # install.packages("ISLR")
@@ -333,6 +334,11 @@ summary(specific_fraud_combination)
 percentage_fraudulent_specific_combination = 1-(79162/(1049716+79162))
 print(percentage_fraudulent_specific_combination)
 
+#For comparison, print the percentage of Fraud Clicks in the whole dataset
+print(percent_fraud)
+
+#Interpretation: Almost 93% of the observations with os=19 and device=1 are Click Frauds. However, also in the whole dataset we have a percentage of Click Fraud of 90.7 %. Therefore, this result is not that special. 
+
 #IMPORTANT: Check the specific combination which has reached 1128878 occurences for os & device. If most of these occurences have is_attributed = 0, we might be able to assume, that this os & device combination can be assigned to a certain bot.
 
 
@@ -393,7 +399,7 @@ set.seed(213)
 classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace = 0.01)
 y_pred_0 = predict(classifier_0, newdata = test_set[-9])
 
-print(classifier_0)
+# print(classifier_0)
 
 # 1) IP included and click_time excluded (only bins_click_time)
 classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
@@ -402,16 +408,10 @@ y_pred_1 = predict(classifier_1, newdata = test_set[-9])
 # 2)  Excluding OS and IP
 classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_time, data= training_set, laplace = 1)
 # test_set$y_pred = predict(classifier, newdata = test_set)
-y_pred_4 = predict(classifier_2, newdata = test_set[-9])
-
-table(y_pred_2)
-confusionMatrix(data = y_pred_2, reference = test_set$is_attributed)
-F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_2)
-Precision(y_true = test_set$is_attributed, y_pred = y_pred_2)
-Recall(y_true = test_set$is_attributed, y_pred = y_pred_2)
+y_pred_2 = predict(classifier_2, newdata = test_set[-9])
 
 
-# 3) IP excluded
+# 3) Only IP excluded
 classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_time, data= training_set)
 y_pred_3 = predict(classifier_3, newdata = test_set[-9])
 
@@ -419,35 +419,18 @@ y_pred_3 = predict(classifier_3, newdata = test_set[-9])
 classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data= training_set)
 y_pred_4 = predict(classifier_4, newdata = test_set[-9])
 
-print(classifier)
-summary(classifier) #Summary gives conditional probabilities across all features
+# print(classifier)
+# summary(classifier) #Summary gives conditional probabilities across all features
 
+# 5) IP included and click_time excluded (only bins_click_time)
+classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
+y_pred_5 = predict(classifier_1, newdata = test_set[-9])
 
-#Insert correct classifier model object
-y_pred = predict(classifier_ex_, newdata = test_set[-9])
+# #Insert correct classifier model object
+# y_pred = predict(classifier_ex_, newdata = test_set[-9])
 
 #Get total number of 0 and 1 values
 table(y_pred)  
-
-
-## Method 2 - Naive Bayes from "naivebayes"-package
-
-set.seed(987)
-
-# Alternative Package
-# install.packages("naivebayes")
-library(naivebayes)
-
-# Build a new model using the Laplace correction
-classifier_2 <- naive_bayes(is_attributed ~ app + device + os + channel + bins_click_time, data=training_set, laplace=1)
-
-
-# Observe the new predicted probabilities for a weekend afternoon
-y_predict_2 <- predict(classifier_2, newdata=test_set[-8])
-
-F1_Method_2 = F1_Score(y_true = test_set$is_attributed, y_pred = y_predict_2)
-Accuracy(y_true = test_set$is_attributed, y_pred = y_predict_2)
-
 
 # Additional Comments ___________________________________
 
@@ -468,30 +451,6 @@ library(caret)
 # install.packages("ML)
 confusionMatrix(data = y_pred, reference = test_set$is_attributed)
 
-## Get F1-Score
-
-F1_Method_1 = F1_Score(y_true = test_set$is_attributed, y_pred = y_pred)
-F1_Method_1
-
-Precision(y_true = test_set$is_attributed, y_pred = y_pred)
-Recall(y_true = test_set$is_attributed, y_pred = y_pred)
-
-
-apply(dataset)
-
-
-
-# Precision = Precision(y_true = test_set$is_attributed, y_pred = i)
-# , data_y = test_set$is_attributed
-
-Precision()
-
-#Model Performance Training Set
-
-
-#Model Performance Test Set
-
-
 get_model_performance = function (predict_variable, y_reference = test_set$is_attributed){
   library(MLmetrics)
   library(caret)
@@ -510,15 +469,14 @@ get_model_performance = function (predict_variable, y_reference = test_set$is_at
 
 #Get Performance for y_pred_0
 get_model_performance(predict_variable = y_pred_0, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_1, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_2, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_3, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_4, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_5, y_reference = test_set$is_attributed)
 
-?require
 
-# c) ROC Curve
-# e) CAP Curve
-
-
-
-# 6) Performance Visualization ------------------------------------------------------
+# (6) Performance Visualization) ------------------------------------------------------
 
 #https://datascienceplus.com/machine-learning-results-one-plot-to-rule-them-all/
 # Check different plots to visualize classification results
@@ -563,18 +521,102 @@ data_forecast$bins_click_exact_time = factor(data_forecast$bins_click_exact_time
 
 # b. Get Basic Statistics -------------------------------------------------
 
+# Get different data_forecasts based on fraudulent and natural clicks
+ds_forecast_is_attributed_1 = subset(data_forecast, subset=data_forecast$is_attributed==1)
+ds_forecast_is_attributed_0 = subset(data_forecast, subset=data_forecast$is_attributed==0)
 
+#Overview of the count of the factor levels and min/max values of the features (relevant for the time variables)
+summary(data_forecast)
+str(data_forecast)
+
+#Get number of days considered in data_forecast based on bins created
+number_of_days = max(data_forecast$click_date)-min(data_forecast$click_date)
+
+#Check distribution of fraudulent and real clicks
+plot(data_forecast$is_attributed)
+
+#Get number of unique values per feature
+str(data_forecast)
+unique_feature_levels = list(number_ip = length(unique(data_forecast$ip)),
+                             number_apps = length(unique(data_forecast$app)),
+                             number_devices = length(unique(data_forecast$device)),
+                             number_os = length(unique(data_forecast$os)),
+                             number_channels = length(unique(data_forecast$channel)))
+
+print(unique_feature_levels)
 
 
 # c. Explore each Feature -------------------------------------------------
 
+# I. ip
+#Visualize the distribution
+ggplot(data=data_forecast, aes(x=ip)) + geom_bar()
+
+#Check how often certain ip-addresses appeared in the data_forecast 
+data_forecast %>%
+  group_by(ip) %>%
+  count(sort=T)
+
+# 3.  Are their IP addresses which can be clearly assigned to a bot?
+#   •   Is there a certain pattern in IP adresses based on those with click fraud?
+#   Do those come from a certain country (e.g. where a certain proxy came from)?
+
+# II. app
+#Visualize the distribution
+ggplot(data=data_forecast, aes(x=app)) + geom_bar()
+
+#Check how often certain app id's appeared in the data_forecast
+data_forecast %>%
+  group_by(app) %>%
+  count(sort=T)
+
+# III. device
+#Visualize the distribution
+ggplot(data=data_forecast, aes(x=device)) + geom_bar()
+
+#Check how often certain devices appeared in the data_forecast
+data_forecast %>%
+  group_by(device) %>%
+  count(sort=T)
+
+# IV. os
+#Visualize the distribution
+ggplot(data=data_forecast, aes(x=os)) + geom_bar()
+
+#Check how often certain os appeared in the data_forecast
+data_forecast %>%
+  group_by(os) %>%
+  count(sort=T)
+
+# V. channel
+#Visualize the distribution
+ggplot(data=data_forecast, aes(x=channel)) + geom_bar()
+
+#Check how often certain channels appeared in the data_forecast
+data_forecast %>%
+  group_by(channel) %>%
+  count(sort=T)
+
+# VI. click_time
+
+# Compare time distribution based on the click_time of fraudulent and natural clicks
+ggplot(data=ds_is_attributed_1, aes(x=ds_forecast_is_attributed_1$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Natural Clicks based on Time")
+ggplot(data=ds_is_attributed_0, aes(x=ds_forecast_is_attributed_0$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Fraudulent Clicks based on Time")
+
+# (Question: 1. Which time does make it likely that Click Fraud has happened?
+#   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
+#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?)
+
+max(data_forecast$click_date) 
+min(data_forecast$click_date)
 
 
+# VII. attributed_time
 
-# (d. Check Correlations) -------------------------------------------------
+#Not considered because NA's appear in this variable when is_attributed = 0, therefore it is not a suitable predictor, since it does not help to differentiate between is_attributed = 0 and = 1. 
 
 
-
+# (d. Check Relationships between Variables) -------------------------------------------------
 
 
 #(7) Model Performance Comparison)  -------------------------------------------
@@ -733,6 +775,49 @@ library(e1071)
 
 
 # Non-used Code --------------------------------
+
+# c) ROC Curve
+# e) CAP Curve
+
+## Get F1-Score
+
+F1_Method_1 = F1_Score(y_true = test_set$is_attributed, y_pred = y_pred)
+F1_Method_1
+
+Precision(y_true = test_set$is_attributed, y_pred = y_pred)
+Recall(y_true = test_set$is_attributed, y_pred = y_pred)
+
+
+# Precision = Precision(y_true = test_set$is_attributed, y_pred = i)
+# , data_y = test_set$is_attributed
+
+#Model Performance Training Set
+
+#Model Performance Test Set
+
+## Method 2 - Naive Bayes from "naivebayes"-package
+
+set.seed(987)
+
+# Alternative Package
+# install.packages("naivebayes")
+library(naivebayes)
+
+# Build a new model using the Laplace correction
+classifier_2 <- naive_bayes(is_attributed ~ app + device + os + channel + bins_click_time, data=training_set, laplace=1)
+
+
+# Observe the new predicted probabilities for a weekend afternoon
+y_predict_2 <- predict(classifier_2, newdata=test_set[-8])
+
+F1_Method_2 = F1_Score(y_true = test_set$is_attributed, y_pred = y_predict_2)
+Accuracy(y_true = test_set$is_attributed, y_pred = y_predict_2)
+
+# table(y_pred_2)
+# confusionMatrix(data = y_pred_2, reference = test_set$is_attributed)
+# F1_Score(y_true = test_set$is_attributed, y_pred = y_pred_2)
+# Precision(y_true = test_set$is_attributed, y_pred = y_pred_2)
+# Recall(y_true = test_set$is_attributed, y_pred = y_pred_2)
 
 #Balloonplot
 # ggballoonplot(data=as.data.frame(table(dataset$os, dataset$device)), x=ct_os_device$os, y=ct_os_device$device)
@@ -933,16 +1018,18 @@ library(dplyr)
 
 # 24h binning -------------------------------------------------------------
 
-# # #Test: Binning on click_exact_time - 24 intervals
-# # # Binning on click_exact_time
-# dataset$bins_click_exact_time2 = NA
-# dataset$bins_click_exact_time2 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
-#                                      breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
-#                                      labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
-# 
-# dataset$bins_click_exact_time2 = as.character(dataset$bins_click_exact_time2)
-# ind = which(is.na(dataset$bins_click_exact_time2))
-# dataset$bins_click_exact_time2[ind] = "23-24"
-# # # Convert bin variable into factor
-# dataset$bins_click_exact_time2 = as.factor(dataset$bins_click_exact_time2)
-# # dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time2, levels=c("0-2","2-4","4-6","6-8","8-10","10-12","12-14","14-16","16-18","18-20","20-22","22-24"))
+# Binning on click_exact_time - 24 intervals (instead of 12 as default)
+# # Binning on click_exact_time
+dataset$bins_click_exact_time_24 = NA
+dataset$bins_click_exact_time_24 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
+                                     breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
+                                     labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
+
+dataset$bins_click_exact_time_24 = as.character(dataset$bins_click_exact_time_24)
+ind = which(is.na(dataset$bins_click_exact_time_24))
+dataset$bins_click_exact_time_24[ind] = "23-24"
+# # Convert bin variable into factor
+dataset$bins_click_exact_time_24 = as.factor(dataset$bins_click_exact_time_24)
+dataset$bins_click_exact_time_24 = factor(dataset$bins_click_exact_time_24, levels=c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23", "23-24"))
+
+str(dataset)
