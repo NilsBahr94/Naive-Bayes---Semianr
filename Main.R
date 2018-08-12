@@ -168,75 +168,101 @@ sum(percent_attributed_dataset, na_per_feature[7])
 # Conclusion: NA's only occur in the feature "attributed_time" when "is_attributed"=0, meaning that the app was not downloaded and Click Fraud has happened. This observation does make sense intuitively, since "attributed_time" tells us when an app was downloaded. When an app was not downloaded (is_attributed=0), there can be no information about the download time ("attributed_time").
 # We face systematic NA (not MAR). The missingness fully depends on "is_attributed".
 
-#General
 
 # b. Get Basic Statistics -------------------------------------------------------------
+
+# install.packages("dplyr")
+library(dplyr)
 
 # Get different datasets based on fraudulent and natural clicks
 ds_is_attributed_1 = subset(dataset, subset=dataset$is_attributed==1)
 ds_is_attributed_0 = subset(dataset, subset=dataset$is_attributed==0)
 
-library(dplyr)
+#Overview of the count of the factor levels and min/max values of the features (relevant for the time variables)
 summary(dataset)
+str(dataset)
 
 #Get number of days considered in dataset based on bins created
-number_of_days = ((length(unique(dataset$bins_click_time)))*2)/24
-number_of_days
+number_of_days = max(dataset$click_date)-min(dataset$click_date)
 
-##Check distribution of fraudulent and real clicks
+#Check distribution of fraudulent and real clicks
 plot(dataset$is_attributed)
 
-#Check percentage of non-fraudulent clicks based on the dataset
+#Check percentage of NON-FRAUDULENT clicks based on the dataset
 percent_natural = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
 percent_natural
-#Check absolute number of non-fraudulent clicks
+#Check absolute number of NON-FRAUDULENT clicks
 nrow(subset(dataset, dataset$is_attributed==1))
 
-#Check percentage of fraudulent clicks based on the dataset
+#Check percentage of FRAUDULENT clicks based on the dataset
 percent_fraud = nrow(subset(dataset, dataset$is_attributed==0))/nrow(dataset)
 percent_fraud
-
-#Check absolute number of fraudulent clicks
+#Check absolute number of FRAUDULENT clicks
 number_frauds = nrow(subset(dataset, dataset$is_attributed==0))
 
 #Get number of unique values per feature
 str(dataset)
-number_ip = length(unique(dataset$ip))
-number_apps = length(unique(dataset$app))
-number_devices = length(unique(dataset$device))
-number_os = length(unique(dataset$os))
-number_channels = length(unique(dataset$channel))
-  
+unique_feature_levels = list(number_ip = length(unique(dataset$ip)),
+number_apps = length(unique(dataset$app)),
+number_devices = length(unique(dataset$device)),
+number_os = length(unique(dataset$os)),
+number_channels = length(unique(dataset$channel)))
 
+print(unique_feature_levels)
+  
 # c. Explore each Feature --------------------------------------------------
 
 # install.packages("ggplot2")
 library(ggplot2)
-str(dataset)
 
 # I. ip
+#Visualize the distribution
 ggplot(data=dataset, aes(x=ip)) + geom_bar()
 
+#Check how often certain ip-addresses appeared in the dataset 
+dataset %>%
+  group_by(ip) %>%
+  count(sort=T)
 
 # 3.  Are their IP addresses which can be clearly assigned to a bot?
 #   •   Is there a certain pattern in IP adresses based on those with click fraud?
 #   Do those come from a certain country (e.g. where a certain proxy came from)?
 
 # II. app
+#Visualize the distribution
 ggplot(data=dataset, aes(x=app)) + geom_bar()
 
+#Check how often certain app id's appeared in the dataset
+dataset %>%
+  group_by(app) %>%
+  count(sort=T)
+
 # III. device
+#Visualize the distribution
 ggplot(data=dataset, aes(x=device)) + geom_bar()
 
+#Check how often certain devices appeared in the dataset
+dataset %>%
+  group_by(device) %>%
+  count(sort=T)
+
 # IV. os
-
-# 2.  Which OS does make it most likely that Click Fraud has happened?
-#   Can you filter out certain OS in conjunction with certain devices at which Click Fraud comes up more likely?
-
+#Visualize the distribution
 ggplot(data=dataset, aes(x=os)) + geom_bar()
 
+#Check how often certain os appeared in the dataset
+dataset %>%
+  group_by(os) %>%
+  count(sort=T)
+
 # V. channel
+#Visualize the distribution
 ggplot(data=dataset, aes(x=channel)) + geom_bar()
+
+#Check how often certain channels appeared in the dataset
+dataset %>%
+  group_by(channel) %>%
+  count(sort=T)
 
 # VI. click_time
 
@@ -244,26 +270,18 @@ ggplot(data=dataset, aes(x=channel)) + geom_bar()
 ggplot(data=ds_is_attributed_1, aes(x=ds_is_attributed_1$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Natural Clicks based on Time")
 ggplot(data=ds_is_attributed_0, aes(x=ds_is_attributed_0$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Fraudulent Clicks based on Time")
 
-# 1. Which time does make it likely that Click Fraud has happened?
+# (Question: 1. Which time does make it likely that Click Fraud has happened?
 #   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
-#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?
+#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?)
 
+max(dataset$click_date) 
 min(dataset$click_date)
-max(dataset$click_date)
 
 #Dataset represents 4 days - Monday until Thursday
 
-
 # VII. attributed_time
 
-
-## Basic Statistics of the two sets
-# Examine Data
-str(dataset)
-summary(dataset)
-
-hist(dataset$ip)
-hist(dataset$os)
+#Not considered because NA's appear in this variable when is_attributed = 0, therefore it is not a suitable predictor, since it does not help to differentiate between is_attributed = 0 and = 1. 
 
 # d. Check Relationships between Variables ------------------------------------------------------
 
@@ -271,55 +289,52 @@ hist(dataset$os)
 
 ct_os_device = table(dataset$os, dataset$device)
 
-# Get how often of the most frequently occuring combination in the dataset 
-max(ct_os_device)
-
-df_ct_os_device=as.data.frame(ct_os_device)
-str(df_ct_os_device)
-
-df_ct_os_device[df_ct_os_device$Freq == 1128878L,]
-#Figure out the Index where the most frequently occuring combination is placed
-which(df_ct_os_device$Freq == 1128878L)
-# High number of occurences for os = 19 and device = 1
-
-#Check whether os = 19 and device = 1 always result in is_attributed = 0
-specific_fraud_combination = subset(dataset, subset= dataset$os == 19 & dataset$device == 1)
-summary(specific_fraud_combination)
-
-#Interesting: 1049716 click frauds came from this combination, but also 79162 natural
-
-percentage_fraudulent_specific_combination = 1-(79162/(1049716+79162))
-
-#IMPORTANT: Check the specific combination which has reached 1128878 occurences for os & device. If all these occurences have is_attributed = 0, we might be able to assume, that this os & device combination can be clearly assigned to a certain bot.
-
 # Get other statistics
 mean(ct_os_device)
 sd(ct_os_device)
 
 # Visualize 
-ggplot(data=as.data.frame(ct_os_device), aes(y=Freq)) + geom_boxplot()
-#We can see that there are certain combinations, which appear very frequently, whereas others not that much
+ggplot(data=as.data.frame(ct_os_device), aes(y=Freq)) + geom_boxplot() #We can see that there are certain combinations, which appear very frequently, whereas others not that much
 
 #Apply Chi-Square test to check independence 
 chisq.test(table(dataset$os, dataset$device))
 
 #Interpreation Results Chi-Squared Test: 
 # If p-value here is lower than 0.05 (which is the case), then this means that both variables are dependent (null-hypothesis would test whether they are independent)
-# The null hypothesis for this test is that there is no relationship between OS  and Device  The alternative hypothesis is that there is a relationship between OS and Device.
+# The null hypothesis for this test is that there is no relationship between OS  and Device.  The alternative hypothesis is that there is a relationship between OS and Device.
+# We get a significant result here. This is no surprise, however, since the sample is very large. 
 
-# Try to visualize the relationship between two variables
 
-# install.packages("ggpubr")
-library(ggpubr)
+#Explore interesting specific combinations because os and device 
+#Reasons for doing so:
+# Check whether a certain combination of os and device can be clearly assigned to a bot.
+# Check whether os and device could be independent. Intuitively, one would consider that those features are not independent from each other (e.g. an iPhone always has a certain os, therefore there is a dependency) naturally seem to be dependent features although Naive Bayes assumes independence of features.  
 
-#Balloonplot
-# ggballoonplot(data=as.data.frame(table(dataset$os, dataset$device)), x=ct_os_device$os, y=ct_os_device$device)
+# Get how often of the most frequently occuring combination in the dataset 
+max(ct_os_device)
 
-# # Correspondence Analysis 
-# # install.packages("FactoMineR")
-# library(FactoMineR)
-# CA_os_device = CA(table(dataset$os, dataset$device), ncp=10)
-# MCA_os_device = MCA(table(dataset$os, dataset$device), ncp=10)
+df_ct_os_device=as.data.frame(ct_os_device)
+str(df_ct_os_device)
+
+#Figure out the Index of the most frequently occuring combination (with a frequency of 1128878)
+df_ct_os_device[df_ct_os_device$Freq == 1128878L,]
+# which(df_ct_os_device$Freq == 1128878L)
+# High number of occurences for os = 19 and device = 1
+
+#Check whether os = 19 and device = 1 always result in is_attributed = 0
+specific_fraud_combination = subset(dataset, subset= dataset$os == 19 & dataset$device == 1)
+
+#Check is_attributed here
+summary(specific_fraud_combination)
+
+#Interesting: 1049716 click frauds came from the combination (os = 19 and device = 1), but also 79162 natural
+
+#Calculate the perccentage of (is_attributed = 0 aka Click Fraud) came from os = 19 and device = 1
+percentage_fraudulent_specific_combination = 1-(79162/(1049716+79162))
+print(percentage_fraudulent_specific_combination)
+
+#IMPORTANT: Check the specific combination which has reached 1128878 occurences for os & device. If most of these occurences have is_attributed = 0, we might be able to assume, that this os & device combination can be assigned to a certain bot.
+
 
 # II. Channel & Device
 
@@ -379,8 +394,6 @@ classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bin
 y_pred_0 = predict(classifier_0, newdata = test_set[-9])
 
 print(classifier_0)
-
-
 
 # 1) IP included and click_time excluded (only bins_click_time)
 classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
@@ -561,6 +574,11 @@ data_forecast$bins_click_exact_time = factor(data_forecast$bins_click_exact_time
 # (d. Check Correlations) -------------------------------------------------
 
 
+
+
+
+#(7) Model Performance Comparison)  -------------------------------------------
+
 # a) CART 
 # install.packages("ranger")
 library(ranger)
@@ -579,10 +597,6 @@ library(xgboost)
 
 # d) SVM
 library(e1071)
-
-
-#(7) Model Performance Comparison)  -------------------------------------------
-
 
 # Sample Code  -------------------------------------------------------------
 
@@ -719,6 +733,15 @@ library(e1071)
 
 
 # Non-used Code --------------------------------
+
+#Balloonplot
+# ggballoonplot(data=as.data.frame(table(dataset$os, dataset$device)), x=ct_os_device$os, y=ct_os_device$device)
+
+# # Correspondence Analysis 
+# # install.packages("FactoMineR")
+# library(FactoMineR)
+# CA_os_device = CA(table(dataset$os, dataset$device), ncp=10)
+# MCA_os_device = MCA(table(dataset$os, dataset$device), ncp=10)
 
 frequent_os_device = subset(df_ct_os_device, subset = df_ct_os_device&Freq == 1128878)
 
