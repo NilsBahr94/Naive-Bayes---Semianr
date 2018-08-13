@@ -69,7 +69,6 @@ head(data_forecast)
 head(dataset)
 
 
-
 # 2) Data Preparation --------------------------------------------------------
 library(dplyr)
 
@@ -393,44 +392,49 @@ library(pROC)
 
 ## CLASSIFIER: Try Naive Bayes classifiers with different inputs and compare performance
 
+#Hyperparameter: Laplace is set to 1
+# Why? The small probability added to every outcome ensures that they are all possible even if never previously observed
+# Add 1 to all the event to get rid off the problem that multiplying with 0 causes whole probability to get to 0.
+
 set.seed(213)
 
-# 0) Excluding ip and including two bins
-classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace = 0.01)
-y_pred_0 = predict(classifier_0, newdata = test_set[-9])
+# 1) Complete and including two bins 12h
+classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
+y_pred_1 = predict(classifier_1, newdata = test_set[-9])
 
 # print(classifier_0)
 
-# 1) IP included and click_time excluded (only bins_click_time)
-classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
-y_pred_1 = predict(classifier_1, newdata = test_set[-9])
-
-# 2)  Excluding OS and IP
-classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_time, data= training_set, laplace = 1)
+# 2)  Excluding OS and IP 12h
+classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
 # test_set$y_pred = predict(classifier, newdata = test_set)
 y_pred_2 = predict(classifier_2, newdata = test_set[-9])
 
 
-# 3) Only IP excluded
-classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_time, data= training_set)
+# 3) Only IP excluded 12h
+classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
 y_pred_3 = predict(classifier_3, newdata = test_set[-9])
-
-# 4) complete
-classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data= training_set)
-y_pred_4 = predict(classifier_4, newdata = test_set[-9])
 
 # print(classifier)
 # summary(classifier) #Summary gives conditional probabilities across all features
 
-# 5) IP included and click_time excluded (only bins_click_time)
-classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
-y_pred_5 = predict(classifier_1, newdata = test_set[-9])
+# 4) Complete including two bins. exact_time with 24 instead of 12 (default) bins
+classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time_24, data = training_set, laplace=1)
+y_pred_4 = predict(classifier_4, newdata = test_set[-9])
+
+# 5) Excluding bins_click_date (because forecast set does not have this as a feature) 12h
+classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time, data = training_set, laplace=1)
+y_pred_5 = predict(classifier_5, newdata = test_set[-9])
+
+# 6) Excluding device 12h
+
+classifier_6 = naiveBayes(is_attributed ~ ip + app + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
+y_pred_6 = predict(classifier_6, newdata = test_set[-9])
 
 # #Insert correct classifier model object
 # y_pred = predict(classifier_ex_, newdata = test_set[-9])
 
 #Get total number of 0 and 1 values
-table(y_pred)  
+# table(y_pred)  
 
 # Additional Comments ___________________________________
 
@@ -442,6 +446,41 @@ table(y_pred)
 # 9.  Kann man die Observations rausfiltern, bei denen die Wahrscheinlichkeit der Zuordnung zu einer Klasse nur marginal höher ist als die Zuordnung der anderen Klasse (z.B. 0.51 Klasse 1 vs. 0.49 für Klasse 2? Gibt es hierfür bestimmte Parameter, die man noch angeben kann?
 #     •   P(Click Fraud | All Features) vs. P(Click Fraud | only a certain feature)
   
+
+# 4.2) Modeling Without Date ----------------------------------------------
+
+
+# 1) Complete and including two bins 12h
+classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel +  bins_click_exact_time, data = training_set, laplace=1)
+y_pred_1 = predict(classifier_1, newdata = test_set[-9])
+
+# print(classifier_0)
+
+# 2)  Excluding OS and IP 12h
+classifier_2 = naiveBayes(is_attributed ~  app + device + channel +   bins_click_exact_time, data= training_set, laplace=1)
+# test_set$y_pred = predict(classifier, newdata = test_set)
+y_pred_2 = predict(classifier_2, newdata = test_set[-9])
+
+# 3) Only IP excluded 12h
+classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel +   bins_click_exact_time, data= training_set, laplace=1)
+y_pred_3 = predict(classifier_3, newdata = test_set[-9])
+
+# print(classifier)
+# summary(classifier) #Summary gives conditional probabilities across all features
+
+# 4) Complete including two bins. exact_time with 24 instead of 12 (default) bins
+classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time_24, data = training_set, laplace=1)
+y_pred_4 = predict(classifier_4, newdata = test_set[-9])
+
+# 5) Excluding bins_click_date (because forecast set does not have this as a feature) 12h
+classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time, data = training_set, laplace=1)
+y_pred_5 = predict(classifier_5, newdata = test_set[-9])
+
+# 6) Excluding device 12h
+
+classifier_6 = naiveBayes(is_attributed ~ ip + app + os + channel +   bins_click_exact_time, data = training_set, laplace=1)
+y_pred_6 = predict(classifier_6, newdata = test_set[-9])
+
 
 # 5) Model Performance -------------------------------------------------------
 
@@ -468,19 +507,32 @@ get_model_performance = function (predict_variable, y_reference = test_set$is_at
 }
 
 #Get Performance for y_pred_0
-get_model_performance(predict_variable = y_pred_0, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_1, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_2, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_3, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_4, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_5, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_6, y_reference = test_set$is_attributed)
 
+#classifier_2 with y_pred_2 performs best among the inspected models with a Prediction Score of 0.9830459
+#Classifier_2 input features: is_attributed ~ app + device + channel + bins_click_exact_time
 
-# (6) Performance Visualization) ------------------------------------------------------
+#Percentage of predicted is_attributed=0 and 1 in chosen model
+predicted_values_dataset = table(y_pred_2)
 
-#https://datascienceplus.com/machine-learning-results-one-plot-to-rule-them-all/
-# Check different plots to visualize classification results
+# For comparison later, calculate the prediction
+percent_predicted_is_attributed_0= predicted_values_dataset[1]/(predicted_values_dataset[1]+predicted_values_dataset[2])
+percent_predicted_is_attributed_0
+percent_predicted_is_attributed_1 = 1-percent_predicted_is_attributed_0
+percent_predicted_is_attributed_1
 
+# 6) Variable Importance ------------------------------------------------------
+
+# install.packages("mlbench")
+library(mlbench)
+library(caret)
+
+?train
 
 # 7) Forecast -------------------------------------------------------------
 
@@ -520,6 +572,8 @@ data_forecast$bins_click_exact_time = factor(data_forecast$bins_click_exact_time
 
 
 # b. Get Basic Statistics -------------------------------------------------
+
+
 
 # Get different data_forecasts based on fraudulent and natural clicks
 ds_forecast_is_attributed_1 = subset(data_forecast, subset=data_forecast$is_attributed==1)
@@ -617,6 +671,56 @@ min(data_forecast$click_date)
 
 
 # (d. Check Relationships between Variables) -------------------------------------------------
+
+
+# e. Prediction -----------------------------------------------------------
+
+data_forecast$is_attributed_predicted = predict(classifier_2, newdata = data_forecast)
+str(data_forecast)
+summary(data_forecast)
+
+#Check summary for the 
+
+
+#Check percentage of NON-FRAUDULENT clicks based on the forecast_dataset
+percent_natural_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))/nrow(data_forecast)
+percent_natural_forecast
+#Compare with percentage of predicted natural clicks (is_attributed = 1) in trained model
+percent_predicted_is_attributed_1
+
+#Compare with percent natural in dataset used for training and testset
+percent_natural
+#Check absolute number of NON-FRAUDULENT clicks
+nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))
+
+#Check percentage of FRAUDULENT clicks based on the forecast_dataset
+percent_fraud_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==0))/nrow(data_forecast)
+percent_fraud_forecast
+#Compare with percentage of predicted click frauds (is_attributed = 0) in trained model
+percent_predicted_is_attributed_0
+
+#Compare with percent fraud in dataset used for training and testset
+percent_fraud
+#Check absolute number of FRAUDULENT clicks
+number_frauds = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==0))
+
+# 24h binning -------------------------------------------------------------
+
+# Binning on click_exact_time - 24 intervals (instead of 12 as default)
+# # Binning on click_exact_time
+dataset$bins_click_exact_time_24 = NA
+dataset$bins_click_exact_time_24 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
+                                        breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
+                                        labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
+
+dataset$bins_click_exact_time_24 = as.character(dataset$bins_click_exact_time_24)
+ind = which(is.na(dataset$bins_click_exact_time_24))
+dataset$bins_click_exact_time_24[ind] = "23-24"
+# # Convert bin variable into factor
+dataset$bins_click_exact_time_24 = as.factor(dataset$bins_click_exact_time_24)
+dataset$bins_click_exact_time_24 = factor(dataset$bins_click_exact_time_24, levels=c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23", "23-24"))
+
+str(dataset)
 
 
 #(7) Model Performance Comparison)  -------------------------------------------
@@ -775,6 +879,46 @@ library(e1071)
 
 
 # Non-used Code --------------------------------
+
+#https://datascienceplus.com/machine-learning-results-one-plot-to-rule-them-all/
+# Check different plots to visualize classification results
+
+# install.packages("rminer")
+# library(rminer)
+# 
+# Importance(M=classifier_2, data=training_set, PRED=y_pred_2)
+
+# 0) Excluding ip and including two bins
+classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace = 0.01)
+y_pred_0 = predict(classifier_0, newdata = test_set[-9])
+
+# print(classifier_0)
+
+# 1) IP included and click_time excluded (only bins_click_time)
+classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data = training_set, laplace = 1)
+y_pred_1 = predict(classifier_1, newdata = test_set[-9])
+
+# 2)  Excluding OS and IP
+classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_time, data= training_set, laplace = 1)
+# test_set$y_pred = predict(classifier, newdata = test_set)
+y_pred_2 = predict(classifier_2, newdata = test_set[-9])
+
+
+# 3) Only IP excluded
+classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_time, data= training_set)
+y_pred_3 = predict(classifier_3, newdata = test_set[-9])
+
+# 4) complete
+classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_time, data= training_set)
+y_pred_4 = predict(classifier_4, newdata = test_set[-9])
+
+# print(classifier)
+# summary(classifier) #Summary gives conditional probabilities across all features
+
+# 0) Excluding ip and including two bins
+classifier_0 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time_24, data = training_set, laplace = 0.01)
+y_pred_0 = predict(classifier_0, newdata = test_set[-9])
+
 
 # c) ROC Curve
 # e) CAP Curve
@@ -1016,20 +1160,4 @@ str(dataset)
 library(dplyr)
 
 
-# 24h binning -------------------------------------------------------------
 
-# Binning on click_exact_time - 24 intervals (instead of 12 as default)
-# # Binning on click_exact_time
-dataset$bins_click_exact_time_24 = NA
-dataset$bins_click_exact_time_24 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
-                                     breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
-                                     labels = c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23"))
-
-dataset$bins_click_exact_time_24 = as.character(dataset$bins_click_exact_time_24)
-ind = which(is.na(dataset$bins_click_exact_time_24))
-dataset$bins_click_exact_time_24[ind] = "23-24"
-# # Convert bin variable into factor
-dataset$bins_click_exact_time_24 = as.factor(dataset$bins_click_exact_time_24)
-dataset$bins_click_exact_time_24 = factor(dataset$bins_click_exact_time_24, levels=c("0-1","1-2","2-3","3-4","4-5","5-6","6-7","7-8","8-9","9-10","10-11","11-12","12-13","13-14","14-15","15-16","16-17","17-18","18-19","19-20","20-21","21-22", "22-23", "23-24"))
-
-str(dataset)
