@@ -528,6 +528,11 @@ percent_predicted_is_attributed_1
 
 # 6) Variable Importance ------------------------------------------------------
 
+#SPÄTER ERST AUSRECHNEN, UM DAS BEI DER PRÄSENTATION ZU ZEIGEN
+
+# https://datascience.stackexchange.com/questions/27536/feature-importance-parameter-in-machine-learning-models-like-naive-bayes
+# "Good point: Since Naive Bayes assumes independence and outputs class probabilities most feature importance criteria are not a direct fit. In fact the feature importance should be no different from the skewness of the feature distribution in the set: You could try to directly compare the probability of the features given the classes (implemented in sklearn), the variability of those probabilities should express the importance of those features."
+
 # install.packages("mlbench")
 library(mlbench)
 library(caret)
@@ -670,19 +675,13 @@ min(data_forecast$click_date)
 #Not considered because NA's appear in this variable when is_attributed = 0, therefore it is not a suitable predictor, since it does not help to differentiate between is_attributed = 0 and = 1. 
 
 
-# (d. Check Relationships between Variables) -------------------------------------------------
-
-
-# e. Prediction -----------------------------------------------------------
+# d. Prediction -----------------------------------------------------------
 
 data_forecast$is_attributed_predicted = predict(classifier_2, newdata = data_forecast)
 str(data_forecast)
 summary(data_forecast)
 
-#Check summary for the 
-
-
-#Check percentage of NON-FRAUDULENT clicks based on the forecast_dataset
+#Check percentage of NON-FRAUDULENT clicks predicted by our model based on the forecast_dataset
 percent_natural_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))/nrow(data_forecast)
 percent_natural_forecast
 #Compare with percentage of predicted natural clicks (is_attributed = 1) in trained model
@@ -693,7 +692,7 @@ percent_natural
 #Check absolute number of NON-FRAUDULENT clicks
 nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))
 
-#Check percentage of FRAUDULENT clicks based on the forecast_dataset
+#Check percentage of FRAUDULENT clicks predicted by our model based on the forecast_dataset
 percent_fraud_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==0))/nrow(data_forecast)
 percent_fraud_forecast
 #Compare with percentage of predicted click frauds (is_attributed = 0) in trained model
@@ -704,7 +703,7 @@ percent_fraud
 #Check absolute number of FRAUDULENT clicks
 number_frauds = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==0))
 
-# 24h binning -------------------------------------------------------------
+# Others: 24h binning -------------------------------------------------------------
 
 # Binning on click_exact_time - 24 intervals (instead of 12 as default)
 # # Binning on click_exact_time
@@ -723,7 +722,12 @@ dataset$bins_click_exact_time_24 = factor(dataset$bins_click_exact_time_24, leve
 str(dataset)
 
 
-#(7) Model Performance Comparison)  -------------------------------------------
+
+
+
+# Non-used Code --------------------------------
+
+#(7) Model Performance Comparison)  
 
 # a) CART 
 # install.packages("ranger")
@@ -743,142 +747,6 @@ library(xgboost)
 
 # d) SVM
 library(e1071)
-
-# Sample Code  -------------------------------------------------------------
-
-#Udemy
-
-#Sample Code for Naive Bayes for DIFFERENT problem
-
-# # Fitting SVM to the Training set
-
-# classifier = naiveBayes(x = training_set[-3],
-#                         y = training_set$Purchased)
-# 
-# # Predicting the Test set results
-# y_pred = predict(classifier, newdata = test_set[-3])
-# 
-# # Making the Confusion Matrix
-# cm = table(test_set[, 3], y_pred)
-# 
-# # Visualising the Training set results
-# library(ElemStatLearn)
-# set = training_set
-# X1 = seq(min(set[, 1]) - 1, max(set[, 1]) + 1, by = 0.01)
-# X2 = seq(min(set[, 2]) - 1, max(set[, 2]) + 1, by = 0.01)
-# grid_set = expand.grid(X1, X2)
-# colnames(grid_set) = c('Age', 'EstimatedSalary')
-# y_grid = predict(classifier, newdata = grid_set)
-# plot(set[, -3],
-#      main = 'SVM (Training set)',
-#      xlab = 'Age', ylab = 'Estimated Salary',
-#      xlim = range(X1), ylim = range(X2))
-# contour(X1, X2, matrix(as.numeric(y_grid), length(X1), length(X2)), add = TRUE)
-# points(grid_set, pch = '.', col = ifelse(y_grid == 1, 'springgreen3', 'tomato'))
-# points(set, pch = 21, bg = ifelse(set[, 3] == 1, 'green4', 'red3'))
-# 
-# # Visualising the Test set results
-# library(ElemStatLearn)
-# set = test_set
-# X1 = seq(min(set[, 1]) - 1, max(set[, 1]) + 1, by = 0.01)
-# X2 = seq(min(set[, 2]) - 1, max(set[, 2]) + 1, by = 0.01)
-# grid_set = expand.grid(X1, X2)
-# colnames(grid_set) = c('Age', 'EstimatedSalary')
-# y_grid = predict(classifier, newdata = grid_set)
-# plot(set[, -3], main = 'SVM (Test set)',
-#      xlab = 'Age', ylab = 'Estimated Salary',
-#      xlim = range(X1), ylim = range(X2))
-# contour(X1, X2, matrix(as.numeric(y_grid), length(X1), length(X2)), add = TRUE)
-# points(grid_set, pch = '.', col = ifelse(y_grid == 1, 'springgreen3', 'tomato'))
-# points(set, pch = 21, bg = ifelse(set[, 3] == 1, 'green4', 'red3'))
-
-
-# Sample Code DataCamp
-
-# building a Naive Bayes model
-# install.packages("naivebayes")
-library(naivebayes)
-
-m <- naive_bayes(location ~ time_of_day, data = location_history)
-
-# making predictions with Naive Bayes
-future_location <- predict(m, future_conditions)
-
-# The 'naivebayes' package is loaded into the workspace
-# and the Naive Bayes 'locmodel' has been built
-
-# Examine the location prediction model
-locmodel
-
-# Obtain the predicted probabilities for Thursday at 9am
-predict(locmodel, thursday9am , type = "prob")
-
-# Obtain the predicted probabilities for Saturday at 9am
-predict(locmodel, saturday9am, type="prob")
-
-# The 'naivebayes' package is loaded into the workspace already
-
-# Build a NB model of location
-locmodel <- naive_bayes(location ~ daytype + hourtype, data=locations)
-
-# Predict Brett's location on a weekday afternoon
-predict(locmodel, weekday_afternoon)
-
-# Predict Brett's location on a weekday evening
-predict(locmodel, newdata=weekday_evening)
-
-#Great job! Your Naive Bayes model forecasts that Brett will be at the office on a weekday afternoon and at home in the evening.
-
-?naive_bayes
-
-# The 'naivebayes' package is loaded into the workspace already
-# The Naive Bayes location model (locmodel) has already been built
-
-# Observe the predicted probabilities for a weekend afternoon
-predict(locmodel, weekend_afternoon, type = "prob")
-
-# Build a new model using the Laplace correction
-locmodel2 <- naive_bayes(location ~ daytype + hourtype, data=locations, laplace=1)
-
-# Observe the new predicted probabilities for a weekend afternoon
-predict(locmodel2, weekend_afternoon, type = "prob")
-
-
-# Sample Code R for Marketing Book
-
-# set.seed(04625) 
-# train.prop <- 0.65 
-# train.cases <- sample(nrow(seg.raw), nrow(seg.raw)*train.prop) 
-# seg.df.train <- seg.raw[train.cases, ] 
-# seg.df.test <- seg.raw[-train.cases, ]
-
-library(e1071)
-(initial_classified <- naiveBayes(is_attributed~., data=training_set))
-
-
-# Sample Code R bloggers
-
-# library (e1071)
-# ?naiveBayes
-# data ( "Titanic" )
-# Titanic_df= as.data.frame (Titanic)
-# repeating_sequence= rep.int ( seq_len ( nrow (Titanic_df)), Titanic_df$Freq)
-# Titanic_dataset=Titanic_df[repeating_sequence,]
-# Titanic_dataset$Freq= NULL
-# Naive_Bayes_Model= naiveBayes (Survived ~., data=Titanic_dataset)
-# Naive_Bayes_Model
-# NB_Predictions= predict (Naive_Bayes_Model,Titanic_dataset)
-# table (NB_Predictions,Titanic_dataset$Survived)
-# library (mlr)
-# task = makeClassifTask (data = Titanic_dataset, target = "Survived" )
-# selected_model = makeLearner ( "classif.naiveBayes" )
-# NB_mlr = train (selected_model, task)
-# NB_mlr$learner.model
-# predictions_mlr = as.data.frame ( predict (NB_mlr, newdata = Titanic_dataset[,1:3]))
-# table(predictions_mlr[,1],Titanic_dataset$Survived)
-
-
-# Non-used Code --------------------------------
 
 #https://datascienceplus.com/machine-learning-results-one-plot-to-rule-them-all/
 # Check different plots to visualize classification results
@@ -1158,6 +1026,139 @@ ggplot(data=dataset, aes(x=))
 summary(dataset)
 str(dataset)
 library(dplyr)
+
+# Sample Code for Naive Bayes  -------------------------------------------------------------
+
+#Udemy
+
+#Sample Code for Naive Bayes for DIFFERENT problem
+
+# # Fitting SVM to the Training set
+
+# classifier = naiveBayes(x = training_set[-3],
+#                         y = training_set$Purchased)
+# 
+# # Predicting the Test set results
+# y_pred = predict(classifier, newdata = test_set[-3])
+# 
+# # Making the Confusion Matrix
+# cm = table(test_set[, 3], y_pred)
+# 
+# # Visualising the Training set results
+# library(ElemStatLearn)
+# set = training_set
+# X1 = seq(min(set[, 1]) - 1, max(set[, 1]) + 1, by = 0.01)
+# X2 = seq(min(set[, 2]) - 1, max(set[, 2]) + 1, by = 0.01)
+# grid_set = expand.grid(X1, X2)
+# colnames(grid_set) = c('Age', 'EstimatedSalary')
+# y_grid = predict(classifier, newdata = grid_set)
+# plot(set[, -3],
+#      main = 'SVM (Training set)',
+#      xlab = 'Age', ylab = 'Estimated Salary',
+#      xlim = range(X1), ylim = range(X2))
+# contour(X1, X2, matrix(as.numeric(y_grid), length(X1), length(X2)), add = TRUE)
+# points(grid_set, pch = '.', col = ifelse(y_grid == 1, 'springgreen3', 'tomato'))
+# points(set, pch = 21, bg = ifelse(set[, 3] == 1, 'green4', 'red3'))
+# 
+# # Visualising the Test set results
+# library(ElemStatLearn)
+# set = test_set
+# X1 = seq(min(set[, 1]) - 1, max(set[, 1]) + 1, by = 0.01)
+# X2 = seq(min(set[, 2]) - 1, max(set[, 2]) + 1, by = 0.01)
+# grid_set = expand.grid(X1, X2)
+# colnames(grid_set) = c('Age', 'EstimatedSalary')
+# y_grid = predict(classifier, newdata = grid_set)
+# plot(set[, -3], main = 'SVM (Test set)',
+#      xlab = 'Age', ylab = 'Estimated Salary',
+#      xlim = range(X1), ylim = range(X2))
+# contour(X1, X2, matrix(as.numeric(y_grid), length(X1), length(X2)), add = TRUE)
+# points(grid_set, pch = '.', col = ifelse(y_grid == 1, 'springgreen3', 'tomato'))
+# points(set, pch = 21, bg = ifelse(set[, 3] == 1, 'green4', 'red3'))
+
+
+# Sample Code DataCamp
+
+# building a Naive Bayes model
+# install.packages("naivebayes")
+library(naivebayes)
+
+m <- naive_bayes(location ~ time_of_day, data = location_history)
+
+# making predictions with Naive Bayes
+future_location <- predict(m, future_conditions)
+
+# The 'naivebayes' package is loaded into the workspace
+# and the Naive Bayes 'locmodel' has been built
+
+# Examine the location prediction model
+locmodel
+
+# Obtain the predicted probabilities for Thursday at 9am
+predict(locmodel, thursday9am , type = "prob")
+
+# Obtain the predicted probabilities for Saturday at 9am
+predict(locmodel, saturday9am, type="prob")
+
+# The 'naivebayes' package is loaded into the workspace already
+
+# Build a NB model of location
+locmodel <- naive_bayes(location ~ daytype + hourtype, data=locations)
+
+# Predict Brett's location on a weekday afternoon
+predict(locmodel, weekday_afternoon)
+
+# Predict Brett's location on a weekday evening
+predict(locmodel, newdata=weekday_evening)
+
+#Great job! Your Naive Bayes model forecasts that Brett will be at the office on a weekday afternoon and at home in the evening.
+
+?naive_bayes
+
+# The 'naivebayes' package is loaded into the workspace already
+# The Naive Bayes location model (locmodel) has already been built
+
+# Observe the predicted probabilities for a weekend afternoon
+predict(locmodel, weekend_afternoon, type = "prob")
+
+# Build a new model using the Laplace correction
+locmodel2 <- naive_bayes(location ~ daytype + hourtype, data=locations, laplace=1)
+
+# Observe the new predicted probabilities for a weekend afternoon
+predict(locmodel2, weekend_afternoon, type = "prob")
+
+
+# Sample Code R for Marketing Book
+
+# set.seed(04625) 
+# train.prop <- 0.65 
+# train.cases <- sample(nrow(seg.raw), nrow(seg.raw)*train.prop) 
+# seg.df.train <- seg.raw[train.cases, ] 
+# seg.df.test <- seg.raw[-train.cases, ]
+
+library(e1071)
+(initial_classified <- naiveBayes(is_attributed~., data=training_set))
+
+
+# Sample Code R bloggers
+
+# library (e1071)
+# ?naiveBayes
+# data ( "Titanic" )
+# Titanic_df= as.data.frame (Titanic)
+# repeating_sequence= rep.int ( seq_len ( nrow (Titanic_df)), Titanic_df$Freq)
+# Titanic_dataset=Titanic_df[repeating_sequence,]
+# Titanic_dataset$Freq= NULL
+# Naive_Bayes_Model= naiveBayes (Survived ~., data=Titanic_dataset)
+# Naive_Bayes_Model
+# NB_Predictions= predict (Naive_Bayes_Model,Titanic_dataset)
+# table (NB_Predictions,Titanic_dataset$Survived)
+# library (mlr)
+# task = makeClassifTask (data = Titanic_dataset, target = "Survived" )
+# selected_model = makeLearner ( "classif.naiveBayes" )
+# NB_mlr = train (selected_model, task)
+# NB_mlr$learner.model
+# predictions_mlr = as.data.frame ( predict (NB_mlr, newdata = Titanic_dataset[,1:3]))
+# table(predictions_mlr[,1],Titanic_dataset$Survived)
 
 
 
