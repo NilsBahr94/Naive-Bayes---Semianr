@@ -70,6 +70,7 @@ head(dataset)
 
 
 # 2) Data Preparation --------------------------------------------------------
+# install.packages("dplyr")
 library(dplyr)
 
 
@@ -132,10 +133,7 @@ str(training_set)
 str(test_set)
 
 
-
-
-
-# 3) Data Exploration --------------------------------------------------------
+# 3) Data Exploration Full Dataset --------------------------------------------------------
 #install.packages("purrr")
 library(purrr)
 
@@ -224,6 +222,11 @@ dataset %>%
   group_by(ip) %>%
   count(sort=T)
 
+ip_5348 = subset(dataset, subset= dataset$ip == "5348")
+nrow(ip_5348)
+str(ip_5348)
+summary(ip_5348)
+
 # 3.  Are their IP addresses which can be clearly assigned to a bot?
 #   •   Is there a certain pattern in IP adresses based on those with click fraud?
 #   Do those come from a certain country (e.g. where a certain proxy came from)?
@@ -237,6 +240,7 @@ dataset %>%
   group_by(app) %>%
   count(sort=T)
 
+
 # III. device
 #Visualize the distribution
 ggplot(data=dataset, aes(x=device)) + geom_bar()
@@ -245,6 +249,12 @@ ggplot(data=dataset, aes(x=device)) + geom_bar()
 dataset %>%
   group_by(device) %>%
   count(sort=T)
+
+device_1 = subset(dataset, subset= dataset$device == "1")
+nrow(device_1)
+str(device_1)
+summary(device_1)
+1-(306495/(4245510+306495))
 
 # IV. os
 #Visualize the distribution
@@ -267,8 +277,8 @@ dataset %>%
 # VI. click_time
 
 # Compare time distribution based on the click_time of fraudulent and natural clicks
-ggplot(data=ds_is_attributed_1, aes(x=ds_is_attributed_1$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Natural Clicks based on Time")
-ggplot(data=ds_is_attributed_0, aes(x=ds_is_attributed_0$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Fraudulent Clicks based on Time")
+ggplot(data=ds_is_attributed_1, aes(x=ds_is_attributed_1$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Natural Clicks based on Time") + xlab("Time Bins - 2 hour intervals") + ylab("Frequency")
+ggplot(data=ds_is_attributed_0, aes(x=ds_is_attributed_0$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Fraudulent Clicks based on Time") + xlab("Time Bins - 2 hour intervals") + ylab("Frequency")
 
 # (Question: 1. Which time does make it likely that Click Fraud has happened?
 #   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
@@ -332,6 +342,8 @@ summary(specific_fraud_combination)
 #Calculate the perccentage of (is_attributed = 0 aka Click Fraud) came from os = 19 and device = 1
 percentage_fraudulent_specific_combination = 1-(79162/(1049716+79162))
 print(percentage_fraudulent_specific_combination)
+
+# This specific combination is 92.9% fraudulent while in the main dataset we have 90.7%
 
 #For comparison, print the percentage of Fraud Clicks in the whole dataset
 print(percent_fraud)
@@ -402,7 +414,7 @@ set.seed(213)
 classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
 y_pred_1 = predict(classifier_1, newdata = test_set[-9])
 
-# print(classifier_0)
+# print(classifier_1)
 
 # 2)  Excluding OS and IP 12h
 classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
@@ -516,6 +528,13 @@ get_model_performance(predict_variable = y_pred_6, y_reference = test_set$is_att
 
 #classifier_2 with y_pred_2 performs best among the inspected models with a Prediction Score of 0.9830459
 #Classifier_2 input features: is_attributed ~ app + device + channel + bins_click_exact_time
+
+print(classifier_2)
+
+# A-priori probabilities (p(class_0) & p(class_1))
+#   Y
+# 0          1 
+# 0.90775693 0.09224307 
 
 #Percentage of predicted is_attributed=0 and 1 in chosen model
 predicted_values_dataset = table(y_pred_2)
@@ -1028,6 +1047,11 @@ str(dataset)
 library(dplyr)
 
 # Sample Code for Naive Bayes  -------------------------------------------------------------
+
+
+# Pseudo Code - Berechnung p(x_i | C_I)
+# (nrow(filter(is_attributed = 1 for observations with IP=123)))/nrow(is_attributed = 1 in total for every observation)
+
 
 #Udemy
 
