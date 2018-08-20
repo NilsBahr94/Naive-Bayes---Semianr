@@ -411,6 +411,16 @@ str(dataset)
 
 # 4.1) Feature Selection --------------------------------------------------
 
+
+
+smp_siz = floor(0.15*nrow(dataset))  
+smp_siz 
+
+set.seed(456)   
+train_ind = sample(seq_len(nrow(dataset)),size = smp_siz)  
+rfe_set=dataset[train_ind,] 
+
+
 # ensure the results are repeatable
 set.seed(7)
 # load the library
@@ -429,6 +439,7 @@ control <- rfeControl(functions=nbFuncs,
 
 # run the RFE algorithm
 
+results <- rfe(x=ref_set[,c(1:5,11:12)], y=as.matrix(ref_set[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
 results <- rfe(x=dataset[,c(1:5,11:12)], y=as.matrix(dataset[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
 
 print(results)
