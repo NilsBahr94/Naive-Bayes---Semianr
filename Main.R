@@ -408,6 +408,39 @@ str(dataset)
 
 # 4) Modeling --------------------------------------------------------------
 
+
+# 4.1) Feature Selection --------------------------------------------------
+
+# ensure the results are repeatable
+set.seed(7)
+# load the library
+library(mlbench)
+library(caret)
+
+library(klaR)
+NaiveBayes()
+
+# define the control using a random forest selection function
+control <- rfeControl(functions=nbFuncs, 
+                      method="cv", 
+                      number=5, 
+                      verbose=FALSE)
+
+
+# run the RFE algorithm
+
+results <- rfe(x=dataset[,c(1:5,11:12)], y=as.matrix(dataset[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
+
+print(results)
+
+# list the chosen features
+predictors(results)
+# plot the results
+plot(results, type=c("g", "o"))
+
+
+###
+
 ## Method 1 - Naive Bayes from "e1071"-package
 # install.packages('e1071')
 library(e1071)
@@ -474,9 +507,6 @@ y_pred_6 = predict(classifier_6, newdata = test_set[-9])
   
 
 # 4.2) Modeling Without Date ----------------------------------------------
-
-
-
 
 # 1) Complete and including two bins 12h
 classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel +  bins_click_exact_time, data = training_set, laplace=1)
@@ -738,14 +768,6 @@ percent_predicted_is_attributed_0
 percent_fraud
 #Check absolute number of FRAUDULENT clicks
 number_frauds = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==0))
-
-# Others: 24h binning -------------------------------------------------------------
-
-
-
-
-
-
 
 # Non-used Code --------------------------------
 
