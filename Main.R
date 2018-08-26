@@ -409,9 +409,6 @@ str(dataset)
 # 4) Modeling --------------------------------------------------------------
 
 
-# 4.1) Feature Selection --------------------------------------------------
-
-
 
 smp_siz = floor(0.15*nrow(dataset))  
 smp_siz 
@@ -421,33 +418,33 @@ train_ind = sample(seq_len(nrow(dataset)),size = smp_siz)
 rfe_set=dataset[train_ind,] 
 
 
-# ensure the results are repeatable
-set.seed(7)
-# load the library
-library(mlbench)
-library(caret)
+# # ensure the results are repeatable
+# set.seed(7)
+# # load the library
+# library(mlbench)
+# library(caret)
+# 
+# library(klaR)
+# NaiveBayes()
 
-library(klaR)
-NaiveBayes()
-
-# define the control using a random forest selection function
-control <- rfeControl(functions=nbFuncs, 
-                      method="cv", 
-                      number=5, 
-                      verbose=FALSE)
-
-
-# run the RFE algorithm
-
-results <- rfe(x=ref_set[,c(1:5,11:12)], y=as.matrix(ref_set[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
-results <- rfe(x=dataset[,c(1:5,11:12)], y=as.matrix(dataset[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
-
-print(results)
-
-# list the chosen features
-predictors(results)
-# plot the results
-plot(results, type=c("g", "o"))
+# # define the control using a random forest selection function
+# control <- rfeControl(functions=nbFuncs, 
+#                       method="cv", 
+#                       number=5, 
+#                       verbose=FALSE)
+# 
+# 
+# # run the RFE algorithm
+# 
+# results <- rfe(x=ref_set[,c(1:5,11:12)], y=as.matrix(ref_set[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
+# results <- rfe(x=dataset[,c(1:5,11:12)], y=as.matrix(dataset[,9]), sizes=c(1:7), rfeControl=rfeControl(functions=nbFuncs), metric = "Accuracy")
+# 
+# print(results)
+# 
+# # list the chosen features
+# predictors(results)
+# # plot the results
+# plot(results, type=c("g", "o"))
 
 
 ###
@@ -499,6 +496,12 @@ y_pred_5 = predict(classifier_5, newdata = test_set[-9])
 
 classifier_6 = naiveBayes(is_attributed ~ ip + app + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
 y_pred_6 = predict(classifier_6, newdata = test_set[-9])
+
+# 7) Excluding OS
+
+classifier_7 = naiveBayes(is_attributed ~ app + device + ip + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
+y_pred_7 = predict(classifier_7, newdata = test_set[-9])
+
 
 # #Insert correct classifier model object
 # y_pred = predict(classifier_ex_, newdata = test_set[-9])
@@ -582,9 +585,13 @@ get_model_performance(predict_variable = y_pred_3, y_reference = test_set$is_att
 get_model_performance(predict_variable = y_pred_4, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_5, y_reference = test_set$is_attributed)
 get_model_performance(predict_variable = y_pred_6, y_reference = test_set$is_attributed)
+get_model_performance(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
 
 #classifier_2 with y_pred_2 performs best among the inspected models with a Prediction Score of 0.9830459
 #Classifier_2 input features: is_attributed ~ app + device + channel + bins_click_exact_time
+
+library(MLmetrics)
+AUC(y_pred_2,test_set$is_attributed)
 
 print(classifier_2)
 
@@ -601,6 +608,17 @@ percent_predicted_is_attributed_0= predicted_values_dataset[1]/(predicted_values
 percent_predicted_is_attributed_0
 percent_predicted_is_attributed_1 = 1-percent_predicted_is_attributed_0
 percent_predicted_is_attributed_1
+
+
+# 5.1) Performance Visualization ------------------------------------------
+
+#ROC
+roc(test_set$is_attributed, y_pred_2, plot = TRUE, col = "steelblue", lwd = 3, 
+    levels=base::levels(as.factor(test_set$is_attributed)), grid=TRUE)
+
+#AUC
+
+
 
 # 6) Variable Importance ------------------------------------------------------
 
@@ -760,8 +778,18 @@ summary(data_forecast)
 #Check percentage of NON-FRAUDULENT clicks predicted by our model based on the forecast_dataset
 percent_natural_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))/nrow(data_forecast)
 percent_natural_forecast
+print(percent_natural_forecast)
+
+percent_fraud_forecast = 1-percent_natural_forecast
+print(percent_fraud_forecast)
 #Compare with percentage of predicted natural clicks (is_attributed = 1) in trained model
-percent_predicted_is_attributed_1
+# percent_predicted_is_attributed_1
+
+percent_natural_training = nrow(subset(training_set, training_set$is_attributed==1))/nrow(training_set)
+print(percent_natural_training)
+
+percent_fraud_forecast = 1-percent_natural_training
+print(percent_fraud_forecast)
 
 #Compare with percent natural in dataset used for training and testset
 percent_natural
