@@ -505,6 +505,10 @@ precision_12 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_12)
 print(precision_12)
 
 
+## RESULT: Classifier 8 achieved the best precision score of 0.9830606
+
+
+
 
 # 5) Model Performance -------------------------------------------------------
 
@@ -541,6 +545,8 @@ model_performance_7 = get_model_performance(predict_variable = y_pred_7, y_refer
 model_performance_8 = get_model_performance(predict_variable = y_pred_8, y_reference = test_set$is_attributed)
 model_performance_9 = get_model_performance(predict_variable = y_pred_9, y_reference = test_set$is_attributed)
 model_performance_10 = get_model_performance(predict_variable = y_pred_10, y_reference = test_set$is_attributed)
+model_performance_11 = get_model_performance(predict_variable = y_pred_11, y_reference = test_set$is_attributed)
+model_performance_12 = get_model_performance(predict_variable = y_pred_12, y_reference = test_set$is_attributed)
 
 #Percentage of predicted is_attributed=0 and 1 in chosen model
 predicted_values_dataset = table(y_pred_2)
@@ -678,7 +684,7 @@ min(data_forecast$click_date)
 # d. Prediction -----------------------------------------------------------
 
 # Predict is_attributed based on the model trained on the training data
-data_forecast$is_attributed_predicted = predict(classifier_2, newdata = data_forecast)
+data_forecast$is_attributed_predicted = predict(classifier_8, newdata = data_forecast)
 
 str(data_forecast)
 summary(data_forecast)
@@ -687,6 +693,7 @@ summary(data_forecast)
 percent_natural_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))/nrow(data_forecast)
 print(percent_natural_forecast)
 
+# Check percentage of FRAUDULENT clicks predicted by our model
 percent_fraud_forecast = 1-percent_natural_forecast
 print(percent_fraud_forecast)
 
@@ -694,6 +701,7 @@ print(percent_fraud_forecast)
 percent_natural_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
 print(percent_natural_dataset)
 
+# Check percentage of OBSERVED clicks predicted by our model
 percent_fraud_dataset = 1-percent_natural_dataset
 print(percent_fraud_dataset)
 
@@ -709,8 +717,16 @@ percent_fraud_forecast
 #Compare with percentage of predicted click frauds (is_attributed = 0) in trained model
 percent_predicted_is_attributed_0
 
-
 #Compare with percent fraud in dataset used for training and testset
 percent_fraud
 #Check absolute number of FRAUDULENT clicks
 number_frauds = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==0))
+
+# Save .csv files ---------------------------------------------------------
+
+write.csv(dataset, "training_set_modified.csv")
+write.csv(data_forecast, "test_set_modified.csv")
+
+saveRDS(dataset, "training_set_modified.rds")
+
+?saveRDS

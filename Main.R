@@ -29,6 +29,18 @@
 # • 200,000 observations for forecast
 
 
+# Install packages --------------------------------------------------------
+# install.packages("readr")
+# install.packages("data.table")
+# install.packages("tibble")
+# install.packages("fasttime")
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("lubridate")
+# install.packages("ISLR")
+# install.packages("ggplot2")
+# install.packages("purrr")
+
 # 1) Data Import ---------------------------------------------------------------
 
 #install.packages("readr")
@@ -42,19 +54,19 @@ setwd("C:\\Users\\nilsb\\sciebo\\Master\\2. Semester\\Seminar\\Projekt\\Data")
 library(data.table)
 library(tibble)
 back_up = as.tibble(fread("train-all.csv", na.strings = ""))
-dataset = as.tibble(fread("train-all.csv", na.strings = ""))
+dataset = as.tibble(fread("train-all.csv", na.strings = ""))  # dataset is synonymous with training set
 
 # Convert the variables "ip", "app", "device", "os", "channel" & the target variable "is_attributed" into factors 
 convert_features <- c("ip", "app", "device", "os", "channel", "is_attributed")
 dataset[convert_features] <- lapply(dataset[convert_features], factor)
 
-#Convert th variables "click_time" & "attributed_time" into POSIXct format
+# Convert the variables "click_time" & "attributed_time" into POSIXct format
 # install.packages("fasttime")
 library(fasttime)
 dataset$click_time = fastPOSIXct(dataset$click_time)
 dataset$attributed_time = fastPOSIXct(dataset$attributed_time)
 
-#Load data which should be forecasted
+# Load data which should be forecasted
 data_forecast = as.tibble(fread("test-all.csv", na.strings = ""))
 
 # Convert the variables "click_id", "ip", "app", "device", "os" and "channel" into factors
@@ -82,7 +94,7 @@ library(dplyr)
 library(tidyr)
 
 # i. Separation of "click_time"
-#Separate blick_time variable into "click_date" and "click_exact_time"
+# Separate blick_time variable into "click_date" and "click_exact_time"
 dataset = separate(dataset, col=click_time, into = c("click_date", "click_exact_time"), sep= " ")
 str(dataset)
 
@@ -91,7 +103,7 @@ str(dataset)
 library(lubridate)
 dataset$click_date = ymd(dataset$click_date) #choose this for date
 
-#Apply binning on "click_date" and "click_exact_time"
+# Apply binning on "click_date" and "click_exact_time"
 
 # Binning on click_data
 dataset$bins_click_date = NA
@@ -113,7 +125,6 @@ dataset$bins_click_exact_time = factor(dataset$bins_click_exact_time, levels=c("
 str(dataset)
 
 # Binning on click_exact_time - 24 intervals (instead of 12 as default)
-# # Binning on click_exact_time
 dataset$bins_click_exact_time_24 = NA
 dataset$bins_click_exact_time_24 <- cut(strptime(dataset$click_exact_time, format = "%H:%M:%S"),
                                         breaks=strptime(c("00:00:00","01:00:00","02:00:00", "03:00:00", "04:00:00", "05:00:00","06:00:00", "07:00:00", "08:00:00","09:00:00", "10:00:00", "11:00:00","12:00:00", "13:00:00", "14:00:00","15:00:00", "16:00:00", "17:00:00","18:00:00", "19:00:00", "20:00:00","21:00:00", "22:00:00", "23:00:00"), format= "%H:%M:%S"),
@@ -236,14 +247,12 @@ dataset %>%
   group_by(ip) %>%
   count(sort=T)
 
+# Further analyze the most frequqnt occuring ip 5348
 ip_5348 = subset(dataset, subset= dataset$ip == "5348")
 nrow(ip_5348)
 str(ip_5348)
 summary(ip_5348)
 
-# 3.  Are their IP addresses which can be clearly assigned to a bot?
-#   •   Is there a certain pattern in IP adresses based on those with click fraud?
-#   Do those come from a certain country (e.g. where a certain proxy came from)?
 
 # II. app
 #Visualize the distribution
@@ -264,6 +273,7 @@ dataset %>%
   group_by(device) %>%
   count(sort=T)
 
+# Analyze the most frequent occuring device 1 
 device_1 = subset(dataset, subset= dataset$device == "1")
 nrow(device_1)
 str(device_1)
@@ -294,9 +304,6 @@ dataset %>%
 ggplot(data=ds_is_attributed_1, aes(x=ds_is_attributed_1$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Natural Clicks based on Time") + xlab("Time Bins - 2 hour intervals") + ylab("Frequency")
 ggplot(data=ds_is_attributed_0, aes(x=ds_is_attributed_0$bins_click_exact_time)) + geom_bar() + ggtitle("Distribution of Fraudulent Clicks based on Time") + xlab("Time Bins - 2 hour intervals") + ylab("Frequency")
 
-# (Question: 1. Which time does make it likely that Click Fraud has happened?
-#   Is it more likely that Click Fraud has happenend during night times in comparison to during the day?
-#   At which times of the day is it more likely that click fraud happens (morning, noon, afternoon, evening)?)
 
 max(dataset$click_date) 
 min(dataset$click_date)
@@ -320,17 +327,17 @@ sd(ct_os_device)
 # Visualize 
 ggplot(data=as.data.frame(ct_os_device), aes(y=Freq)) + geom_boxplot() #We can see that there are certain combinations, which appear very frequently, whereas others not that much
 
-#Apply Chi-Square test to check independence 
+#Apply Chi-Square test to check independence of features device and os
 chisq.test(table(dataset$os, dataset$device))
 
-#Interpreation Results Chi-Squared Test: 
-# If p-value here is lower than 0.05 (which is the case), then this means that both variables are dependent (null-hypothesis would test whether they are independent)
+# Interpreation Results Chi-Squared Test: 
+# If p-value here is lower than 0.05 (which is the case), then this means that both variables are dependent (null-hypothesis would test whether they are independent).
 # The null hypothesis for this test is that there is no relationship between OS  and Device.  The alternative hypothesis is that there is a relationship between OS and Device.
 # We get a significant result here. This is no surprise, however, since the sample is very large. 
 
 
-#Explore interesting specific combinations because os and device 
-#Reasons for doing so:
+# Next: Explore interesting specific combinations because os and device 
+# Reasons for doing so:
 # Check whether a certain combination of os and device can be clearly assigned to a bot.
 # Check whether os and device could be independent. Intuitively, one would consider that those features are not independent from each other (e.g. an iPhone always has a certain os, therefore there is a dependency) naturally seem to be dependent features although Naive Bayes assumes independence of features.  
 
@@ -463,44 +470,47 @@ library(pROC)
 # Why? The small probability added to every outcome ensures that they are all possible even if never previously observed
 # Add 1 to all the event to get rid off the problem that multiplying with 0 causes whole probability to get to 0.
 
-set.seed(213)
 
-# 1) Complete and including two bins 12h
-classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
-y_pred_1 = predict(classifier_1, newdata = test_set[-9])
+# 4.1) Modeling with Date (outdated) --------------------------------------
 
-# print(classifier_1)
-
-# 2)  Excluding OS and IP 12h
-classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
-# test_set$y_pred = predict(classifier, newdata = test_set)
-y_pred_2 = predict(classifier_2, newdata = test_set[-9])
-
-
-# 3) Only IP excluded 12h
-classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
-y_pred_3 = predict(classifier_3, newdata = test_set[-9])
-
-# print(classifier)
-# summary(classifier) #Summary gives conditional probabilities across all features
-
-# 4) Complete including two bins. exact_time with 24 instead of 12 (default) bins
-classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time_24, data = training_set, laplace=1)
-y_pred_4 = predict(classifier_4, newdata = test_set[-9])
-
-# 5) Excluding bins_click_date (because forecast set does not have this as a feature) 12h
-classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time, data = training_set, laplace=1)
-y_pred_5 = predict(classifier_5, newdata = test_set[-9])
-
-# 6) Excluding device 12h
-
-classifier_6 = naiveBayes(is_attributed ~ ip + app + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
-y_pred_6 = predict(classifier_6, newdata = test_set[-9])
-
-# 7) Excluding OS
-
-classifier_7 = naiveBayes(is_attributed ~ app + device + ip + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
-y_pred_7 = predict(classifier_7, newdata = test_set[-9])
+# set.seed(213)
+# 
+# # 1) Complete and including two bins 12h
+# classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
+# y_pred_1 = predict(classifier_1, newdata = test_set[-9])
+# 
+# # print(classifier_1)
+# 
+# # 2)  Excluding OS and IP 12h
+# classifier_2 = naiveBayes(is_attributed ~  app + device + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
+# # test_set$y_pred = predict(classifier, newdata = test_set)
+# y_pred_2 = predict(classifier_2, newdata = test_set[-9])
+# 
+# 
+# # 3) Only IP excluded 12h
+# classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
+# y_pred_3 = predict(classifier_3, newdata = test_set[-9])
+# 
+# # print(classifier)
+# # summary(classifier) #Summary gives conditional probabilities across all features
+# 
+# # 4) Complete including two bins. exact_time with 24 instead of 12 (default) bins
+# classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_date + bins_click_exact_time_24, data = training_set, laplace=1)
+# y_pred_4 = predict(classifier_4, newdata = test_set[-9])
+# 
+# # 5) Excluding bins_click_date (because forecast set does not have this as a feature) 12h
+# classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time, data = training_set, laplace=1)
+# y_pred_5 = predict(classifier_5, newdata = test_set[-9])
+# 
+# # 6) Excluding device 12h
+# 
+# classifier_6 = naiveBayes(is_attributed ~ ip + app + os + channel + bins_click_date + bins_click_exact_time, data = training_set, laplace=1)
+# y_pred_6 = predict(classifier_6, newdata = test_set[-9])
+# 
+# # 7) Excluding OS
+# 
+# classifier_7 = naiveBayes(is_attributed ~ app + device + ip + channel + bins_click_date + bins_click_exact_time, data= training_set, laplace=1)
+# y_pred_7 = predict(classifier_7, newdata = test_set[-9])
 
 
 # #Insert correct classifier model object
@@ -522,36 +532,83 @@ y_pred_7 = predict(classifier_7, newdata = test_set[-9])
 
 # 4.2) Modeling Without Date ----------------------------------------------
 
-# 1) Complete and including two bins 12h
+# 1) Complete 12
 classifier_1 = naiveBayes(is_attributed ~ ip + app + device + os + channel +  bins_click_exact_time, data = training_set, laplace=1)
 y_pred_1 = predict(classifier_1, newdata = test_set[-9])
+# Get Precision
+precision_1 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_1)
+print(precision_1)
 
-# print(classifier_0)
-
-# 2)  Excluding OS and IP 12h
-classifier_2 = naiveBayes(is_attributed ~  app + device + channel +   bins_click_exact_time, data= training_set, laplace=1)
-# test_set$y_pred = predict(classifier, newdata = test_set)
+# 2) Complete 24
+classifier_2 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time_24, data = training_set, laplace=1)
 y_pred_2 = predict(classifier_2, newdata = test_set[-9])
+# Get Precision
+precision_2 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_2)
+print(precision_2)
 
-# 3) Only IP excluded 12h
+## --- Test for 12  --- 
+
+# 3) Only IP excluded 12
 classifier_3 = naiveBayes(is_attributed ~ app + device + os + channel +   bins_click_exact_time, data= training_set, laplace=1)
 y_pred_3 = predict(classifier_3, newdata = test_set[-9])
+# Get Precision
+precision_3 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_3)
+print(precision_3)
 
-# print(classifier)
-# summary(classifier) #Summary gives conditional probabilities across all features
-
-# 4) Complete including two bins. exact_time with 24 instead of 12 (default) bins
-classifier_4 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time_24, data = training_set, laplace=1)
+# 4)  Excluding OS and IP 12
+classifier_4 = naiveBayes(is_attributed ~  app + device + channel +   bins_click_exact_time, data= training_set, laplace=1)
+# test_set$y_pred = predict(classifier, newdata = test_set)
 y_pred_4 = predict(classifier_4, newdata = test_set[-9])
+# Get Precision
+precision_4 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_4)
+print(precision_4)
 
-# 5) Excluding bins_click_date (because forecast set does not have this as a feature) 12h
-classifier_5 = naiveBayes(is_attributed ~ ip + app + device + os + channel + bins_click_exact_time, data = training_set, laplace=1)
+# 5) Excluding device 12
+
+classifier_5 = naiveBayes(is_attributed ~ ip + app + os + channel +   bins_click_exact_time, data = training_set, laplace=1)
 y_pred_5 = predict(classifier_5, newdata = test_set[-9])
+# Get Precision
+precision_5 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_5)
+print(precision_5)
 
-# 6) Excluding device 12h
-
+# 6) Excluding OS 12h
 classifier_6 = naiveBayes(is_attributed ~ ip + app + os + channel +   bins_click_exact_time, data = training_set, laplace=1)
 y_pred_6 = predict(classifier_6, newdata = test_set[-9])
+# Get Precision
+precision_6 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_6)
+print(precision_6)
+
+# --- Test for 24 ---
+
+# 7) Only IP excluded 24
+classifier_7 = naiveBayes(is_attributed ~ app + device + os + channel +   bins_click_exact_time_24, data= training_set, laplace=1)
+y_pred_7 = predict(classifier_7, newdata = test_set[-9])
+# Get Precision
+precision_7 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_7)
+print(precision_7)
+
+# 8)  Excluding OS and IP 24
+classifier_8 = naiveBayes(is_attributed ~  app + device + channel +   bins_click_exact_time_24, data= training_set, laplace=1)
+# test_set$y_pred = predict(classifier, newdata = test_set)
+y_pred_8 = predict(classifier_8, newdata = test_set[-9])
+# Get Precision
+precision_8 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_8)
+print(precision_8)
+
+# 9) Excluding device 24
+
+classifier_9 = naiveBayes(is_attributed ~ ip + app + os + channel +   bins_click_exact_time_24, data = training_set, laplace=1)
+y_pred_9 = predict(classifier_9, newdata = test_set[-9])
+# Get Precision
+precision_9 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_9)
+print(precision_9)
+
+# 10) Excluding OS 24
+classifier_10 = naiveBayes(is_attributed ~ ip + app + os + channel +   bins_click_exact_time_24, data = training_set, laplace=1)
+y_pred_10 = predict(classifier_10, newdata = test_set[-9])
+# Get Precision
+precision_10 = Precision(y_true=test_set$is_attributed, y_pred=y_pred_10)
+print(precision_10)
 
 
 # 5) Model Performance -------------------------------------------------------
@@ -578,17 +635,37 @@ get_model_performance = function (predict_variable, y_reference = test_set$is_at
   print(list(Table_Predictions=Table_Predictions, Confusion_Matrix=Confusion_Matrix, Precision_Score=Precision_Score, Recall_Score=Recall_Score, F1=F1, Accuracy_Score=Accuracy_Score))
 }
 
-#Get Performance for y_pred_0
-get_model_performance(predict_variable = y_pred_1, y_reference = test_set$is_attributed)
-get_model_performance(predict_variable = y_pred_2, y_reference = test_set$is_attributed)
-get_model_performance(predict_variable = y_pred_3, y_reference = test_set$is_attributed)
-get_model_performance(predict_variable = y_pred_4, y_reference = test_set$is_attributed)
-get_model_performance(predict_variable = y_pred_5, y_reference = test_set$is_attributed)
-get_model_performance(predict_variable = y_pred_6, y_reference = test_set$is_attributed)
-get_model_performance(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
+
+#Get whole Performance of different models
+model_performance_1 = get_model_performance(predict_variable = y_pred_1, y_reference = test_set$is_attributed)
+model_performance_2 = get_model_performance(predict_variable = y_pred_2, y_reference = test_set$is_attributed)
+model_performance_3 = get_model_performance(predict_variable = y_pred_3, y_reference = test_set$is_attributed)
+model_performance_4 = get_model_performance(predict_variable = y_pred_4, y_reference = test_set$is_attributed)
+model_performance_5 = get_model_performance(predict_variable = y_pred_5, y_reference = test_set$is_attributed)
+model_performance_6 = get_model_performance(predict_variable = y_pred_6, y_reference = test_set$is_attributed)
+model_performance_7 = get_model_performance(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
+
+#Only get precision for the different models
+get_precision_summary = function(y_reference = test_set$is_attributed ){
+  precision_1 = get_precision(predict_variable = y_pred_1, y_reference = test_set$is_attributed)
+  precision_2 = get_precision(predict_variable = y_pred_2, y_reference = test_set$is_attributed)
+  precision_3 = get_precision(predict_variable = y_pred_3, y_reference = test_set$is_attributed)
+  precision_4 = get_precision(predict_variable = y_pred_4, y_reference = test_set$is_attributed)
+  precision_5 = get_precision(predict_variable = y_pred_5, y_reference = test_set$is_attributed)
+  precision_6 = get_precision(predict_variable = y_pred_6, y_reference = test_set$is_attributed)
+  precision_7 = get_precision(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
+  precision_8 = get_precision(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
+  precision_9 = get_precision(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
+  precision_10 = get_precision(predict_variable = y_pred_7, y_reference = test_set$is_attributed)
+  print(list(precision_1=precision_1,precision_2=precision_2,precision_3=precision_3,precision_4=precision_4,precision_5=precision_5,precision_6=precision_6,precision_7=precision_7,precision_8=precision_8,precision_9=precision_9,precision_10=precision_10))
+}
+
 
 #classifier_2 with y_pred_2 performs best among the inspected models with a Prediction Score of 0.9830459
 #Classifier_2 input features: is_attributed ~ app + device + channel + bins_click_exact_time
+
+
+# Others ------------------------------------------------------------------
 
 library(MLmetrics)
 AUC(y_pred_2,test_set$is_attributed)
@@ -671,8 +748,6 @@ data_forecast$bins_click_exact_time = factor(data_forecast$bins_click_exact_time
 
 
 # b. Get Basic Statistics -------------------------------------------------
-
-
 
 # Get different data_forecasts based on fraudulent and natural clicks
 ds_forecast_is_attributed_1 = subset(data_forecast, subset=data_forecast$is_attributed==1)
@@ -775,21 +850,20 @@ data_forecast$is_attributed_predicted = predict(classifier_2, newdata = data_for
 str(data_forecast)
 summary(data_forecast)
 
-#Check percentage of NON-FRAUDULENT clicks predicted by our model based on the forecast_dataset
+#FORECAST SET: Check percentage of NON-FRAUDULENT clicks predicted by our model based on the forecast_dataset
 percent_natural_forecast = nrow(subset(data_forecast, data_forecast$is_attributed_predicted==1))/nrow(data_forecast)
-percent_natural_forecast
 print(percent_natural_forecast)
 
 percent_fraud_forecast = 1-percent_natural_forecast
 print(percent_fraud_forecast)
-#Compare with percentage of predicted natural clicks (is_attributed = 1) in trained model
-# percent_predicted_is_attributed_1
 
-percent_natural_training = nrow(subset(training_set, training_set$is_attributed==1))/nrow(training_set)
-print(percent_natural_training)
+#TRAINING SET: Compare with percentage of predicted natural clicks (is_attributed = 1) in trained model
+percent_natural_dataset = nrow(subset(dataset, dataset$is_attributed==1))/nrow(dataset)
+print(percent_natural_dataset)
 
-percent_fraud_forecast = 1-percent_natural_training
-print(percent_fraud_forecast)
+percent_fraud_dataset = 1-percent_natural_dataset
+print(percent_fraud_dataset)
+
 
 #Compare with percent natural in dataset used for training and testset
 percent_natural
